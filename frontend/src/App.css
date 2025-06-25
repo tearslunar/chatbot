@@ -2,28 +2,34 @@ body {
   margin: 0;
   padding: 0;
   font-family: 'Noto Sans KR', Arial, sans-serif;
-  background: #f5f6fa;
+  background: linear-gradient(135deg, #e0e0e0, #d5d7dc);  /* 부드러운 회색 그라데이션 */
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 }
 
 .chat-container {
-  max-width: 480px;
-  margin: 0 auto;
-  height: 100vh;
+  max-width: 580px;         /* 기존보다 100px 증가 */
+  width: 100%;
+  height: 95vh;             /* 조금 여백 주기 */
   display: flex;
   flex-direction: column;
-  background: #fff;
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  background: rgba(255, 255, 255, 0.95); /* 약간 투명한 흰색 */
+  border-radius: 20px;      /* 더 부드러운 곡선 */
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);  /* 그림자 부드럽게 */
+  overflow: hidden;
 }
 
 .chat-header {
   padding: 1rem;
-  background: #005baa;
+  background: #f18d00;
   color: #fff;
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   font-weight: bold;
   text-align: center;
-  border-radius: 0 0 12px 12px;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .chat-messages {
@@ -32,17 +38,17 @@ body {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  background: #f5f6fa;
+  gap: 0.6rem;
+  background: #f8f9fb; /* 약간 밝은 배경 */
 }
 
 .chat-message {
-  max-width: 80%;
-  padding: 0.7em 1em;
+  max-width: 85%; /* 조금 넓게 */
+  padding: 0.75em 1em;
   border-radius: 16px;
   font-size: 1rem;
-  word-break: break-all;
-  margin-bottom: 0.2em;
+  word-break: break-word;
+  line-height: 1.5;
 }
 .chat-message.user {
   align-self: flex-end;
@@ -51,15 +57,15 @@ body {
 }
 .chat-message.bot {
   align-self: flex-start;
-  background: #fff;
-  border: 1px solid #e0e0e0;
+  background: #ffffff;
+  border: 1px solid #ddd;
   color: #222;
 }
 
 .chat-input-row {
   display: flex;
   gap: 0.5rem;
-  padding: 0.7rem;
+  padding: 0.8rem;
   background: #fff;
   border-top: 1px solid #eee;
 }
@@ -76,15 +82,22 @@ body {
   border-radius: 8px;
   font-size: 1rem;
   cursor: pointer;
+  transition: 0.2s ease;
 }
 .send-btn {
-  background: #005baa;
+  background: #f18d00;
   color: #fff;
 }
+.send-btn:hover {
+  background: #e07f00;
+}
 .agent-btn {
-  background: #eee;
-  color: #005baa;
-  border: 1px solid #005baa;
+  background: #f1f1f1;
+  color: #f18d00;
+  border: 1px solid #f18d00;
+}
+.agent-btn:hover {
+  background: #fcecdc;
 }
 
 .model-select-row {
@@ -97,7 +110,7 @@ body {
 }
 .model-select-row label {
   font-size: 1rem;
-  color: #005baa;
+  color: #f18d00;
   font-weight: 500;
 }
 .model-select-row select {
