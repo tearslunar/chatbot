@@ -5,7 +5,8 @@ import os
 import google.generativeai as genai
 from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
-from app.sentiment.simple import is_negative_sentiment
+from app.sentiment.simple import is_negative_sentiment, is_negative_sentiment_llm
+from app.utils.gemini import get_gemini_answer
 
 load_dotenv()
 
@@ -27,18 +28,6 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
 
-def get_gemini_answer(user_message: str, model_name: str) -> str:
-    api_key = os.environ.get("GOOGLE_API_KEY")
-    if not api_key:
-        return "(서버 설정 오류) GOOGLE_API_KEY가 등록되어 있지 않습니다."
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_name)
-        response = model.generate_content(user_message)
-        return response.text.strip()
-    except Exception as e:
-        return f"(Gemini API 오류) {str(e)}"
-
 @app.get("/")
 def read_root():
     return {"message": "Hyundai Chatbot API is running"}
@@ -52,8 +41,8 @@ def chat_endpoint(req: ChatRequest):
     user_msg = req.message
     model_name = req.model or "gemini-1.0-pro"
     answer = get_gemini_answer(user_msg, model_name)
-    # 부정 감성 감지 시 상담사 연결 제안 메시지 추가
-    if is_negative_sentiment(user_msg):
+    # 프롬프트 기반 감성분석
+    if is_negative_sentiment_llm(user_msg, model_name):
         answer += "\n\n(감지됨: 부정 감성) 상담사 연결이 필요하신가요? '상담사 연결' 버튼을 눌러주세요."
     return ChatResponse(answer=answer)
 

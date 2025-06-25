@@ -11,6 +11,7 @@ function App() {
   const [model, setModel] = useState(''); // 선택된 모델
   const [modelOptions, setModelOptions] = useState([]); // 실제 모델 목록
   const messagesEndRef = useRef(null);
+  const [isBotTyping, setIsBotTyping] = useState(false);
 
   // 모델 목록 불러오기
   useEffect(() => {
@@ -38,6 +39,8 @@ function App() {
     const userMsg = input;
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setInput('');
+    setIsBotTyping(true);
+    setMessages(prev => [...prev, { role: 'bot', content: '챗봇이 답변을 작성 중입니다...' }]);
     try {
       const res = await fetch('http://127.0.0.1:8000/chat', {
         method: 'POST',
@@ -46,9 +49,24 @@ function App() {
       });
       if (!res.ok) throw new Error('서버 오류');
       const data = await res.json();
-      setMessages(prev => [...prev, { role: 'bot', content: data.answer }]);
+      setMessages(prev => {
+        // 마지막 메시지가 '챗봇이 답변을 작성 중입니다...'이면 교체
+        const last = prev[prev.length - 1];
+        if (last && last.role === 'bot' && last.content === '챗봇이 답변을 작성 중입니다...') {
+          return [...prev.slice(0, -1), { role: 'bot', content: data.answer }];
+        }
+        return [...prev, { role: 'bot', content: data.answer }];
+      });
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'bot', content: '서버와의 통신에 문제가 발생했습니다.' }]);
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last && last.role === 'bot' && last.content === '챗봇이 답변을 작성 중입니다...') {
+          return [...prev.slice(0, -1), { role: 'bot', content: '서버와의 통신에 문제가 발생했습니다.' }];
+        }
+        return [...prev, { role: 'bot', content: '서버와의 통신에 문제가 발생했습니다.' }];
+      });
+    } finally {
+      setIsBotTyping(false);
     }
   };
 
