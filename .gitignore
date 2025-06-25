@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg-info/
+venv/
+backend/venv/
+
+# Node.js
+node_modules/
+frontend/node_modules/
+
+# 환경변수/시크릿
+.env
+backend/.env
+
+# macOS
+.DS_Store
+
+# VSCode
+.vscode/
+
+# 로그/임시파일
+*.log
+*.tmp
+
+# 빌드/배포 산출물
+frontend/dist/
+
+# 기타
+.idea/
+*.swp
