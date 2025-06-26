@@ -10,41 +10,6 @@ body {
   height: 100vh;
 }
 
-.chat-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 1rem;
-  background: #f18d00;
-  color: #fff;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.chat-header {
-  padding: 1rem;
-  background: #f18d00;
-  color: #fff;
-  font-size: 1.4rem;
-  font-weight: bold;
-  text-align: center;
-  border-bottom: 1px solid #e0e0e0;
-}
-/* 기존 end-button 유지하되 위치 관련만 수정 */
-.end-button {
-  padding: 0.5em 1em;
-  background: #fff;
-  color: #f18d00;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-.end-button:hover {
-  background-color: #ffe0bd;
-}
-
-
 .chat-container {
   max-width: 580px;         /* 기존보다 100px 증가 */
   width: 100%;
@@ -55,6 +20,16 @@ body {
   border-radius: 20px;      /* 더 부드러운 곡선 */
   box-shadow: 0 8px 24px rgba(0,0,0,0.08);  /* 그림자 부드럽게 */
   overflow: hidden;
+}
+
+.chat-header {
+  padding: 1rem;
+  background: #f18d00;
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: bold;
+  text-align: center;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .chat-messages {
