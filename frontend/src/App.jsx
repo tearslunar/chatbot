@@ -78,6 +78,14 @@ function App() {
     }
   };
 
+  //상담종료버튼 ( 미완성 )
+  const handleEndChat = () => {
+    setMessages([{ role: 'bot', content: '상담이 종료되었습니다. 감사합니다!' }]);
+    setInput('');
+    setModel('');
+    setModelOptions([]);
+  };
+
   // IME 조합 시작/끝 감지
   const handleCompositionStart = () => setIsComposing(true);
   const handleCompositionEnd = () => setIsComposing(false);
@@ -89,7 +97,10 @@ function App() {
 
   return (
     <div className="chat-container">
-      <div className="chat-header">현대해상 AI 챗봇</div>
+    <div class="chat-header-row">
+      <div class="chat-header">현대해상 AI 챗봇</div>
+      <button class="end-button" onClick={handleEndChat}>상담 종료</button>
+    </div>
       <div className="model-select-row">
         <label htmlFor="model-select">모델 선택: </label>
         <select
