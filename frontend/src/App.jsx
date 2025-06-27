@@ -12,6 +12,7 @@ function App() {
   const [modelOptions, setModelOptions] = useState([]); // 실제 모델 목록
   const messagesEndRef = useRef(null);
   const [isBotTyping, setIsBotTyping] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // 모델 목록 불러오기
   useEffect(() => {
@@ -78,12 +79,13 @@ function App() {
     }
   };
 
-  //상담종료버튼 ( 미완성 )
+  //상담 종료 핸들러
   const handleEndChat = () => {
-    setMessages([{ role: 'bot', content: '상담이 종료되었습니다. 감사합니다!' }]);
-    setInput('');
-    setModel('');
-    setModelOptions([]);
+    setIsModalOpen(true);
+  };
+
+  const handleEndChatCancel = () => {
+    setIsModalOpen(false);
   };
 
   // IME 조합 시작/끝 감지
@@ -98,6 +100,21 @@ function App() {
   return (
     <div className="chat-container">
     <div class="chat-header-row">
+      <div class='modal-container'>
+        {isModalOpen == true &&
+        <>
+          <div className="modal-background">
+            <div className="modal-content">
+              <div className="modal-text">상담을 종료하겠습니까?</div>
+              <p>어려움을 겪고 계신가요?<br></br>상담원이 도와드리겠습니다.<br></br>0000-0000</p> 
+              <div className="modal-buttons">
+                <button className="modal-button yes" onClick={handleEndChatCancel}>네</button>
+                <button className="modal-button no" onClick={handleEndChatCancel}>아니오</button>
+              </div>
+            </div>
+          </div>
+        </>
+        }</div>
       <div class="chat-header">현대해상 AI 챗봇</div>
       <button class="end-button" onClick={handleEndChat}>상담 종료</button>
     </div>
