@@ -74,6 +74,15 @@ function App() {
     }
   };
 
+  //상담 종료 핸들러
+  const handleEndChat = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleEndChatCancel = () => {
+    setIsModalOpen(false);
+  };
+
   // IME 조합 시작/끝 감지
   const handleCompositionStart = () => setIsComposing(true);
   const handleCompositionEnd = () => setIsComposing(false);
@@ -84,19 +93,12 @@ function App() {
   };
 
   // 상담 종료 버튼 클릭 시 모달 오픈
-  const handleEndChat = () => {
-    setIsModalOpen(true);
-  };
-  // 모달에서 '아니오' 클릭 시 닫기
-  const handleEndChatCancel = () => {
-    setIsModalOpen(false);
-  };
-  // 모달에서 '네' 클릭 시 상담 종료
   const handleEndChatConfirm = () => {
     setIsSessionEnded(true);
     setIsModalOpen(false);
     setMessages(prev => ([...prev, { role: 'bot', content: '상담이 종료되었습니다. 언제든 다시 찾아주세요 ☀️' }]));
   };
+
   // 상담 재시작
   const handleRestartSession = () => {
     setIsSessionEnded(false);
