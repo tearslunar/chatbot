@@ -1,14 +1,14 @@
+from dotenv import load_dotenv
+load_dotenv()
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
-import google.generativeai as genai
-from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
-from app.sentiment.simple import is_negative_sentiment, is_negative_sentiment_llm
-from app.utils.gemini import get_gemini_answer
-
-load_dotenv()
+from backend.app.sentiment.simple import is_negative_sentiment_potensdot
+from backend.app.utils.chat import get_potensdot_answer, extract_insurance_entities
+from mangum import Mangum
+from backend.app.rag.faq_rag import search_faqs
 
 app = FastAPI()
 
@@ -23,10 +23,11 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     message: str
-    model: str = "gemini-1.0-pro"
+    model: str = "claude-3.7-sonnet"
 
 class ChatResponse(BaseModel):
     answer: str
+    entities: dict = None
 
 @app.get("/")
 def read_root():
@@ -39,29 +40,15 @@ def health_check():
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(req: ChatRequest):
     user_msg = req.message
-    model_name = req.model or "gemini-1.0-pro"
-    answer = get_gemini_answer(user_msg, model_name)
-    # 프롬프트 기반 감성분석
-    if is_negative_sentiment_llm(user_msg, model_name):
+    model_name = req.model or "claude-3.7-sonnet"
+    # RAG FAQ 검색 (Top-3)
+    rag_faqs = search_faqs(user_msg, top_n=3)
+    answer = get_potensdot_answer(user_msg, model_name, rag_faqs)
+    # Potensdot 감성분석
+    if is_negative_sentiment_potensdot(user_msg):
         answer += "\n\n(감지됨: 부정 감성) 상담사 연결이 필요하신가요? '상담사 연결' 버튼을 눌러주세요."
-    return ChatResponse(answer=answer)
+    # 보험 엔티티 추출
+    entities = extract_insurance_entities(user_msg)
+    return ChatResponse(answer=answer, entities=entities)
 
-@app.get("/models")
-def list_gemini_models():
-    api_key = os.environ.get("GOOGLE_API_KEY")
-    if not api_key:
-        return JSONResponse([])
-    try:
-        genai.configure(api_key=api_key)
-        models = genai.list_models()
-        result = []
-        for m in models:
-            # generateContent 지원 모델만 필터링
-            if hasattr(m, "supported_generation_methods") and "generateContent" in m.supported_generation_methods:
-                result.append({
-                    "name": m.name,
-                    "display_name": getattr(m, "display_name", m.name)
-                })
-        return result
-    except Exception as e:
-        return JSONResponse([{"name": "error", "display_name": str(e)}])
+handler = Mangum(app)
