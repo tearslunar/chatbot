@@ -3,6 +3,7 @@ load_dotenv()
 import os
 import requests
 from typing import List, Dict
+from backend.app.utils.emotion_response import emotion_response
 
 PERSONA_PROMPT = """
 # 페르소나
@@ -73,14 +74,14 @@ def build_rag_prompt(user_message: str, rag_faqs: List[Dict] = None) -> str:
         prompt += f"사용자 질문: {user_message}"
     return prompt
 
-def get_potensdot_answer(user_message: str, model_name: str = None, rag_faqs: List[Dict] = None) -> str:
+def get_potensdot_answer(user_message: str, model_name: str = None, rag_faqs: List[Dict] = None, emotion_data: Dict = None) -> str:
     api_key = os.environ.get("POTENSDOT_API_KEY")
     url = "https://ai.potens.ai/api/chat"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
-    prompt = build_rag_prompt(user_message, rag_faqs)
+    prompt = emotion_response.get_emotion_aware_prompt(user_message, emotion_data or {}, rag_faqs)
     data = {"prompt": prompt}
     try:
         resp = requests.post(url, headers=headers, json=data, timeout=15)

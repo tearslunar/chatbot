@@ -249,7 +249,8 @@ function App() {
         {messages.map((msg, idx) => (
           <div key={idx} className={`chat-message ${msg.role}`}>
             <ReactMarkdown>{msg.content}</ReactMarkdown>
-            {msg.emotion && <EmotionIndicator emotion={msg.emotion} />}
+            {/* 사용자 메시지에만 감정 표시 */}
+            {msg.role === 'user' && msg.emotion && <EmotionIndicator emotion={msg.emotion} />}
             {msg.escalation_needed && (
               <div className="escalation-warning">
                 ⚠️ 상담사 연결이 권장됩니다
