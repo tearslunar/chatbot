@@ -49,6 +49,8 @@ function App() {
   const [currentEmotion, setCurrentEmotion] = useState(null);
   const [emotionHistory, setEmotionHistory] = useState([]);
   const [expandedFAQ, setExpandedFAQ] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('전체');
+  const [selectedTag, setSelectedTag] = useState(null);
 
   // 대화가 바뀔 때마다 localStorage에 저장
   useEffect(() => {
@@ -175,13 +177,56 @@ function App() {
     setExpandedFAQ(expandedFAQ === idx ? null : idx);
   };
 
-  // 추천 FAQ 렌더링 컴포넌트
+  // 카테고리/태그 목록 추출 (중복 제거)
+  const allFaqs = messages.find(msg => msg.role === 'bot' && msg.recommended_faqs)?.recommended_faqs || [];
+  const categories = ['전체', ...Array.from(new Set(allFaqs.map(faq => faq.category).filter(Boolean)))];
+  const tags = Array.from(new Set(allFaqs.flatMap(faq => faq.tags || []).filter(Boolean)));
+
+  // 필터링된 FAQ
+  const filteredFaqs = allFaqs.filter(faq =>
+    (selectedCategory === '전체' || faq.category === selectedCategory) &&
+    (!selectedTag || (faq.tags && faq.tags.includes(selectedTag)))
+  );
+
+  // 추천 FAQ 렌더링 컴포넌트 수정
   const RecommendedFAQs = ({ faqs }) => {
     if (!faqs || faqs.length === 0) return null;
     return (
       <div className="recommended-faqs">
         <div className="faq-title">🔎 추천 FAQ</div>
-        {faqs.map((faq, idx) => (
+        {/* 카테고리 탭 */}
+        <div className="faq-category-tabs">
+          {categories.map(cat => (
+            <button
+              key={cat}
+              className={`faq-category-tab${selectedCategory === cat ? ' active' : ''}`}
+              onClick={() => { setSelectedCategory(cat); setSelectedTag(null); }}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+        {/* 태그 필터 */}
+        <div className="faq-tag-filter-row">
+          {tags.map(tag => (
+            <span
+              key={tag}
+              className={`faq-tag-filter${selectedTag === tag ? ' active' : ''}`}
+              onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+            >
+              #{tag}
+            </span>
+          ))}
+          {(selectedTag || selectedCategory !== '전체') && (
+            <button className="faq-filter-reset" onClick={() => { setSelectedCategory('전체'); setSelectedTag(null); }}>
+              필터 해제
+            </button>
+          )}
+        </div>
+        {/* 필터링된 FAQ 리스트 */}
+        {filteredFaqs.length === 0 ? (
+          <div className="faq-empty">해당 조건의 FAQ가 없습니다.</div>
+        ) : filteredFaqs.map((faq, idx) => (
           <div key={idx} className="faq-item">
             <div className="faq-meta-row">
               <span className="faq-category">{faq.category}</span>
