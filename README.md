@@ -9,7 +9,7 @@ flowchart TD
     B(감정 분석)
     C{감정 결과}
     D[상담사 연결 권장 여부 판단]
-    E[FAQ 추천(RAG)]
+    E[RAG 기반 FAQ 추천]
     F[FAQ 임베딩 로딩 및 유사도 기반 Top-N 추출]
     G[프롬프트 생성 (햇살봇 페르소나 + 감정 + FAQ)]
     H[LLM(Potens.AI) 답변 생성]
