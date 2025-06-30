@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart TD
-    %% 노드 정의 (Nodes Definition)
+    %% 1. 노드(상자)들을 각각 한 줄에 하나씩 정의합니다.
     A[사용자 질문 입력]
     B(감정 분석)
     C{감정 결과}
@@ -18,7 +18,7 @@ flowchart TD
     K[대화 히스토리 저장]
     L[프론트엔드에 응답 표시]
 
-    %% 관계 정의 (Links Definition)
+    %% 2. 정의된 노드들을 화살표로 연결합니다.
     A --> B
     B --> C
     C -- "부정/분노/불만 등" --> D
