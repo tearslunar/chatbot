@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import './App.css';
 import ChatLoading from './components/ChatLoading';
 
@@ -11,8 +12,21 @@ const MODEL_OPTIONS = [
 
 const HISTORY_KEY = 'chat_history';
 
+// 감정별 이모지와 색상
+const EMOTION_CONFIG = {
+  '긍정': { emoji: '😊', color: '#4CAF50', bgColor: '#E8F5E8' },
+  '부정': { emoji: '😔', color: '#FF9800', bgColor: '#FFF3E0' },
+  '불만': { emoji: '😤', color: '#F44336', bgColor: '#FFEBEE' },
+  '분노': { emoji: '😠', color: '#D32F2F', bgColor: '#FFCDD2' },
+  '불안': { emoji: '😰', color: '#9C27B0', bgColor: '#F3E5F5' },
+  '중립': { emoji: '😐', color: '#607D8B', bgColor: '#ECEFF1' },
+  '기쁨': { emoji: '😄', color: '#4CAF50', bgColor: '#E8F5E8' },
+  '슬픔': { emoji: '😢', color: '#2196F3', bgColor: '#E3F2FD' },
+  '놀람': { emoji: '😲', color: '#FF9800', bgColor: '#FFF3E0' }
+};
+
 function App() {
-  // 대화 히스토리: {role: 'user'|'bot', content: string} 배열
+  // 대화 히스토리: {role: 'user'|'bot', content: string, emotion?: object} 배열
   const [messages, setMessages] = useState(() => {
     // localStorage에서 불러오기
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -32,6 +46,9 @@ function App() {
   const [isBotTyping, setIsBotTyping] = useState(false);
   const [isSessionEnded, setIsSessionEnded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentEmotion, setCurrentEmotion] = useState(null);
+  const [emotionHistory, setEmotionHistory] = useState([]);
+  const [expandedFAQ, setExpandedFAQ] = useState(null);
 
   // 대화가 바뀔 때마다 localStorage에 저장
   useEffect(() => {
@@ -42,6 +59,19 @@ function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isBotTyping]);
+
+  // 감정 히스토리 업데이트
+  useEffect(() => {
+    const emotions = messages
+      .filter(msg => msg.emotion)
+      .map(msg => msg.emotion);
+    setEmotionHistory(emotions);
+    
+    // 최신 감정 설정
+    if (emotions.length > 0) {
+      setCurrentEmotion(emotions[emotions.length - 1]);
+    }
+  }, [messages]);
 
   // 메시지 전송 핸들러
   const handleSend = async () => {
@@ -58,7 +88,12 @@ function App() {
       });
       if (!res.ok) throw new Error('서버 오류');
       const data = await res.json();
-      setMessages(prev => ([...prev, { role: 'bot', content: data.answer }]));
+      setMessages(prev => ([...prev, { 
+        role: 'bot', 
+        content: data.answer,
+        emotion: data.emotion,
+        escalation_needed: data.escalation_needed
+      }]));
     } catch (err) {
       setMessages(prev => ([...prev, { role: 'bot', content: '서버와의 통신에 문제가 발생했습니다.' }]));
     } finally {
@@ -103,13 +138,73 @@ function App() {
   const handleRestartSession = () => {
     setIsSessionEnded(false);
     setMessages([{ role: 'bot', content: '안녕하세요! 무엇을 도와드릴까요?' }]);
+    setCurrentEmotion(null);
+    setEmotionHistory([]);
   };
 
   // 히스토리 삭제(초기화)
   const handleClearHistory = () => {
     setMessages([{ role: 'bot', content: '안녕하세요! 무엇을 도와드릴까요?' }]);
     setIsSessionEnded(false);
+    setCurrentEmotion(null);
+    setEmotionHistory([]);
     localStorage.removeItem(HISTORY_KEY);
+  };
+
+  // 감정 표시 컴포넌트
+  const EmotionIndicator = ({ emotion }) => {
+    if (!emotion) return null;
+    
+    const config = EMOTION_CONFIG[emotion.emotion] || EMOTION_CONFIG['중립'];
+    
+    return (
+      <div className="emotion-indicator" style={{ 
+        backgroundColor: config.bgColor, 
+        color: config.color,
+        border: `1px solid ${config.color}`
+      }}>
+        <span className="emotion-emoji">{config.emoji}</span>
+        <span className="emotion-text">{emotion.emotion}</span>
+        <span className="emotion-intensity">강도: {emotion.intensity}/5</span>
+      </div>
+    );
+  };
+
+  // FAQ 토글 핸들러
+  const handleToggleFAQ = idx => {
+    setExpandedFAQ(expandedFAQ === idx ? null : idx);
+  };
+
+  // 추천 FAQ 렌더링 컴포넌트
+  const RecommendedFAQs = ({ faqs }) => {
+    if (!faqs || faqs.length === 0) return null;
+    return (
+      <div className="recommended-faqs">
+        <div className="faq-title">🔎 추천 FAQ</div>
+        {faqs.map((faq, idx) => (
+          <div key={idx} className="faq-item">
+            <div className="faq-meta-row">
+              <span className="faq-category">{faq.category}</span>
+              <span className="faq-tags">
+                {faq.tags && faq.tags.map((tag, i) => (
+                  <span key={i} className="faq-tag">#{tag}</span>
+                ))}
+              </span>
+            </div>
+            <div className="faq-question" onClick={() => handleToggleFAQ(idx)}>
+              <span>{faq.question}</span>
+              <span className="faq-score">(유사도: {faq.score})</span>
+              <span className="faq-toggle">{expandedFAQ === idx ? '▲' : '▼'}</span>
+            </div>
+            {expandedFAQ === idx && (
+              <div className="faq-answer">
+                <ReactMarkdown>{faq.answer}</ReactMarkdown>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -129,7 +224,10 @@ function App() {
             </div>
           )}
         </div>
-        <div className="chat-header">현대해상 AI 챗봇</div>
+        <div className="chat-header">
+          현대해상 AI 챗봇
+          {currentEmotion && <EmotionIndicator emotion={currentEmotion} />}
+        </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           {!isSessionEnded && <button className="end-button" onClick={handleEndChat}>상담 종료</button>}
           <button className="end-button" onClick={handleClearHistory}>히스토리 삭제</button>
@@ -149,7 +247,19 @@ function App() {
       </div>
       <div className="chat-messages">
         {messages.map((msg, idx) => (
-          <div key={idx} className={`chat-message ${msg.role}`}>{msg.content}</div>
+          <div key={idx} className={`chat-message ${msg.role}`}>
+            <ReactMarkdown>{msg.content}</ReactMarkdown>
+            {msg.emotion && <EmotionIndicator emotion={msg.emotion} />}
+            {msg.escalation_needed && (
+              <div className="escalation-warning">
+                ⚠️ 상담사 연결이 권장됩니다
+              </div>
+            )}
+            {/* 추천 FAQ는 마지막 bot 메시지에만 노출 */}
+            {msg.role === 'bot' && idx === messages.length - 1 && msg.recommended_faqs && (
+              <RecommendedFAQs faqs={msg.recommended_faqs} />
+            )}
+          </div>
         ))}
         {isBotTyping && <ChatLoading />}
         <div ref={messagesEndRef} />
