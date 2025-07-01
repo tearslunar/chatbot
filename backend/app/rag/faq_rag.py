@@ -5,6 +5,7 @@ import pickle
 import os
 import numpy as np
 from typing import List, Dict
+import faiss
 
 # 파일 경로
 FAQ_JSON_PATH = os.path.join(os.path.dirname(__file__), 'hi_faq.json')
@@ -45,23 +46,46 @@ def cosine_similarity(a, b):
     b = np.array(b)
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
+# 3. FAISS 인덱스 및 임베딩 메모리 캐싱
+faq_embeddings = None
+faq_list = None
+faiss_index = None
+
+# 서버 시작 시 임베딩 및 인덱스 메모리 적재
+if os.path.exists(EMBEDDINGS_PATH):
+    loaded = load_embeddings()
+    faq_list = [item['faq'] for item in loaded]
+    faq_embeddings = np.array([item['embedding'] for item in loaded], dtype='float32')
+    faiss_index = faiss.IndexFlatL2(faq_embeddings.shape[1])
+    faiss_index.add(faq_embeddings)
+else:
+    print(f"[경고] FAQ 임베딩 파일이 존재하지 않습니다: {EMBEDDINGS_PATH}")
+
+# query 임베딩 생성 함수 (실제 운영 시 외부 API로 대체 가능)
+def get_query_embedding(query: str):
+    model = get_model()
+    text = query.strip()
+    return model.encode([text])[0].astype('float32')
+
 def search_faqs(query: str, top_n: int = 3) -> List[Dict]:
     """
     query: 사용자의 질문
     top_n: 반환할 FAQ 개수
     return: [{'faq': ..., 'score': ...}, ...]
     """
-    # 운영 서버에서는 미리 생성된 임베딩만 사용
-    # query 임베딩은 별도 API/서비스에서 생성해 전달받거나, 간단한 키워드 매칭 등으로 대체 가능
-    # 여기서는 임시로 모든 FAQ에 대해 0점(랜덤) 유사도 반환 (실제 운영 시 query 임베딩 필요)
-    faq_embeddings = load_embeddings()
-    # TODO: query 임베딩 생성이 필요하면 별도 서비스/API로 분리
-    # 현재는 유사도 계산 없이 FAQ만 반환 (임시)
-    scored = [
-        {'faq': item['faq'], 'score': 1.0}  # score는 임시로 1.0
-        for item in faq_embeddings[:top_n]
-    ]
-    return scored
+    if faiss_index is None or faq_embeddings is None or faq_list is None:
+        return []
+    query_emb = get_query_embedding(query).reshape(1, -1)
+    D, I = faiss_index.search(query_emb, top_n)
+    results = []
+    for idx, score in zip(I[0], D[0]):
+        if idx < 0 or idx >= len(faq_list):
+            continue
+        results.append({
+            'faq': faq_list[idx],
+            'score': float(-score)  # FAISS L2 거리이므로, -score로 유사도처럼 사용
+        })
+    return results
 
 if __name__ == "__main__":
     create_and_save_embeddings() 

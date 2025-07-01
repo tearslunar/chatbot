@@ -4,6 +4,8 @@ import os
 import requests
 from typing import List, Dict
 from backend.app.utils.emotion_response import emotion_response
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 PERSONA_PROMPT = """
 # 페르소나
@@ -74,14 +76,34 @@ def build_rag_prompt(user_message: str, rag_faqs: List[Dict] = None) -> str:
         prompt += f"사용자 질문: {user_message}"
     return prompt
 
-def get_potensdot_answer(user_message: str, model_name: str = None, rag_faqs: List[Dict] = None, emotion_data: Dict = None) -> str:
+def build_prompt_with_history(history, user_message, rag_faqs=None, emotion_data=None):
+    prompt = PERSONA_PROMPT.strip() + "\n\n"
+    if emotion_data:
+        prompt += f"현재 사용자의 감정은 '{emotion_data.get('emotion', '중립')}'(강도 {emotion_data.get('intensity', 3)})입니다. 이 감정에 공감하며 안내해 주세요.\n\n"
+    # 대화 이력 추가
+    for turn in (history or []):
+        if turn.get("role") == "user":
+            prompt += f"User: {turn.get('content', '')}\n"
+        elif turn.get("role") == "assistant":
+            prompt += f"Assistant: {turn.get('content', '')}\n"
+    # FAQ 추가
+    if rag_faqs and len(rag_faqs) > 0:
+        faq_text = '\n'.join([
+            f"Q: {item['faq']['question']}\nA: {item['faq']['content']}" for item in rag_faqs
+        ])
+        prompt += f"아래는 현대해상 FAQ입니다.\n{faq_text}\n"
+    # 마지막 질문 추가
+    prompt += f"User: {user_message}\nAssistant:"
+    return prompt
+
+def get_potensdot_answer(user_message: str, model_name: str = None, rag_faqs: List[Dict] = None, emotion_data: Dict = None, history: list = None) -> str:
     api_key = os.environ.get("POTENSDOT_API_KEY")
     url = "https://ai.potens.ai/api/chat"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
-    prompt = emotion_response.get_emotion_aware_prompt(user_message, emotion_data or {}, rag_faqs)
+    prompt = build_prompt_with_history(history, user_message, rag_faqs, emotion_data)
     data = {"prompt": prompt}
     try:
         resp = requests.post(url, headers=headers, json=data, timeout=15)
@@ -132,4 +154,17 @@ def extract_insurance_entities(user_message: str) -> dict:
             return {}
     except Exception as e:
         print(f"[Potens.AI Entity API] Exception: {e}")
-        return {} 
+        return {}
+
+llm_router = APIRouter()
+
+@llm_router.post("/llm-answer-async")
+async def llm_answer_async(request: Request):
+    data = await request.json()
+    user_message = data.get("user_message", "")
+    model_name = data.get("model_name", None)
+    rag_faqs = data.get("rag_faqs", None)
+    emotion_data = data.get("emotion_data", None)
+    history = data.get("history", None)
+    answer = get_potensdot_answer(user_message, model_name, rag_faqs, emotion_data, history)
+    return JSONResponse(content={"answer": answer}) 
