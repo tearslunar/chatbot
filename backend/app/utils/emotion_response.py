@@ -1,9 +1,5 @@
-from dotenv import load_dotenv
-load_dotenv()
-import os
-import requests
-from typing import List, Dict
-from backend.app.utils.emotion_response import emotion_response
+from typing import Dict, List
+from backend.app.sentiment.advanced import emotion_analyzer
 
 PERSONA_PROMPT = """
 # 페르소나
@@ -63,73 +59,36 @@ User: 아니, 서류 다 냈는데 왜 아직도 처리가 안되는 거예요? 
 Assistant: 많이 답답하고 걱정되셨겠어요. 서류를 모두 제출하셨는데도 소식이 없으니 속상한 마음이 드는 건 당연해요. 제가 지금 바로 진행 상황을 확인해 보고, 현재 어떤 단계에 있는지 꼼꼼하게 알려드릴게요. 잠시만 기다려 주시겠어요? ☀️
 """
 
-def build_rag_prompt(user_message: str, rag_faqs: List[Dict] = None) -> str:
-    prompt = PERSONA_PROMPT.strip() + "\n\n"
-    if rag_faqs and len(rag_faqs) > 0:
-        faq_text = '\n'.join([
-            f"Q: {item['faq']['question']}\nA: {item['faq']['content']}" for item in rag_faqs
-        ])
-        prompt += f"아래는 현대해상 FAQ입니다.\n{faq_text}\n\n사용자 질문: {user_message}\n위 FAQ를 참고하여 답변해 주세요."
-    else:
-        prompt += f"사용자 질문: {user_message}"
-    return prompt
+class EmotionBasedResponse:
+    def __init__(self):
+        pass
 
-def get_potensdot_answer(user_message: str, model_name: str = None, rag_faqs: List[Dict] = None, emotion_data: Dict = None) -> str:
-    api_key = os.environ.get("POTENSDOT_API_KEY")
-    url = "https://ai.potens.ai/api/chat"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}"
-    }
-    prompt = emotion_response.get_emotion_aware_prompt(user_message, emotion_data or {}, rag_faqs)
-    data = {"prompt": prompt}
-    try:
-        resp = requests.post(url, headers=headers, json=data, timeout=15)
-        if resp.status_code == 200:
-            result = resp.json()
-            return result.get("message") or result.get("content") or "답변을 생성하지 못했습니다."
-        else:
-            print(f"[Potens.AI API] status_code: {resp.status_code}")
-            print(f"[Potens.AI API] response: {resp.text}")
-            return f"챗봇 응답에 문제가 발생했습니다. (상태코드: {resp.status_code}) 관리자에게 문의해 주세요."
-    except Exception as e:
-        print(f"[Potens.AI API] Exception: {e}")
-        return f"챗봇 응답에 일시적 문제가 발생했습니다. (에러: {e}) 관리자에게 문의해 주세요."
+    def get_emotion_enhanced_response(self, base_response: str, emotion_data: Dict) -> str:
+        return base_response
 
-def extract_insurance_entities(user_message: str) -> dict:
-    """
-    Potens.AI API를 사용해 보험 관련 엔티티를 추출합니다.
-    추출 항목: 보험종류, 사고유형, 보장항목, 보험금, 피보험자, 계약자, 사고일자, 연락처, 기타
-    """
-    api_key = os.environ.get("POTENSDOT_API_KEY")
-    url = "https://ai.potens.ai/api/chat"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}"
-    }
-    prompt = f'''
-아래 문장에서 보험 관련 주요 정보를 JSON 형식으로 추출해줘.
-항목: 보험종류, 사고유형, 보장항목, 보험금, 피보험자, 계약자, 사고일자, 연락처, 기타(있으면)
-문장: "{user_message}"
-반드시 JSON만 반환해줘.
-'''
-    data = {"prompt": prompt}
-    try:
-        resp = requests.post(url, headers=headers, json=data, timeout=15)
-        if resp.status_code == 200:
-            result = resp.json()
-            answer = result.get("message") or result.get("content") or "{}"
-            # JSON 파싱 시도
-            import json
-            try:
-                return json.loads(answer)
-            except Exception:
-                # JSON 파싱 실패 시 문자열 반환
-                return {"raw": answer}
+    def get_escalation_suggestion(self, emotion_data: Dict, trend: Dict) -> str:
+        emotion = emotion_data.get('emotion', '중립')
+        intensity = emotion_data.get('intensity', 3)
+        if trend.get('recommendation') == 'immediate_agent':
+            return "\n\n🚨 **긴급 상담사 연결이 필요합니다.**\n상담사가 즉시 도와드리겠습니다."
+        elif trend.get('recommendation') == 'suggest_agent':
+            return "\n\n💬 **상담사 연결을 권장드립니다.**\n더 전문적인 도움을 받으실 수 있습니다."
+        elif trend.get('recommendation') == 'empathetic_response':
+            return "\n\n💙 **더 자세한 상담이 필요하시면 상담사 연결을 고려해보세요.**"
+        return ""
+
+    def get_emotion_aware_prompt(self, user_message: str, emotion_data: Dict, rag_faqs: List[Dict] = None) -> str:
+        emotion = emotion_data.get('emotion', '중립')
+        intensity = emotion_data.get('intensity', 3)
+        감정설명 = f"현재 사용자의 감정은 '{emotion}'(강도 {intensity})입니다. 이 감정에 공감하며 안내해 주세요."
+        prompt = PERSONA_PROMPT.strip() + "\n\n" + 감정설명 + "\n\n"
+        if rag_faqs and len(rag_faqs) > 0:
+            faq_text = '\n'.join([
+                f"Q: {item['faq']['question']}\nA: {item['faq']['content']}" for item in rag_faqs
+            ])
+            prompt += f"아래는 현대해상 FAQ입니다.\n{faq_text}\n\n사용자 질문: {user_message}\n위 FAQ를 참고하여 답변해 주세요."
         else:
-            print(f"[Potens.AI Entity API] status_code: {resp.status_code}")
-            print(f"[Potens.AI Entity API] response: {resp.text}")
-            return {}
-    except Exception as e:
-        print(f"[Potens.AI Entity API] Exception: {e}")
-        return {} 
+            prompt += f"사용자 질문: {user_message}"
+        return prompt
+
+emotion_response = EmotionBasedResponse() 

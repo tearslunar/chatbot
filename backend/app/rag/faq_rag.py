@@ -2,7 +2,6 @@ from dotenv import load_dotenv
 load_dotenv()
 import json
 import pickle
-from sentence_transformers import SentenceTransformer
 import os
 import numpy as np
 from typing import List, Dict
@@ -16,18 +15,16 @@ def load_faq_data():
     with open(FAQ_JSON_PATH, 'r', encoding='utf-8') as f:
         return json.load(f)
 
-# 2. 임베딩 모델 로딩 (한글 지원 다국어 모델)
+# 2. 임베딩 생성/저장/모델 로딩 (운영 서버에서는 사용하지 않음)
 def get_model():
+    from sentence_transformers import SentenceTransformer
     return SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
 
-# 3. 임베딩 생성 및 저장
 def create_and_save_embeddings():
     faqs = load_faq_data()
     model = get_model()
-    # 질문+답변을 하나의 텍스트로 임베딩
     texts = [f"Q: {faq['question']}\nA: {faq['content']}" for faq in faqs]
     embeddings = model.encode(texts, show_progress_bar=True)
-    # (FAQ, 임베딩) 쌍으로 저장
     faq_embeddings = [
         {
             'faq': faq,
@@ -43,11 +40,6 @@ def load_embeddings() -> List[Dict]:
     with open(EMBEDDINGS_PATH, 'rb') as f:
         return pickle.load(f)
 
-def embed_text(text: str, model=None):
-    if model is None:
-        model = get_model()
-    return model.encode([text])[0]
-
 def cosine_similarity(a, b):
     a = np.array(a)
     b = np.array(b)
@@ -59,15 +51,16 @@ def search_faqs(query: str, top_n: int = 3) -> List[Dict]:
     top_n: 반환할 FAQ 개수
     return: [{'faq': ..., 'score': ...}, ...]
     """
-    model = get_model()
-    query_emb = embed_text(query, model)
+    # 운영 서버에서는 미리 생성된 임베딩만 사용
+    # query 임베딩은 별도 API/서비스에서 생성해 전달받거나, 간단한 키워드 매칭 등으로 대체 가능
+    # 여기서는 임시로 모든 FAQ에 대해 0점(랜덤) 유사도 반환 (실제 운영 시 query 임베딩 필요)
     faq_embeddings = load_embeddings()
-    scored = []
-    for item in faq_embeddings:
-        score = cosine_similarity(query_emb, item['embedding'])
-        scored.append({'faq': item['faq'], 'score': score})
-    # 유사도 내림차순 정렬 후 top_n 반환
-    scored = sorted(scored, key=lambda x: x['score'], reverse=True)[:top_n]
+    # TODO: query 임베딩 생성이 필요하면 별도 서비스/API로 분리
+    # 현재는 유사도 계산 없이 FAQ만 반환 (임시)
+    scored = [
+        {'faq': item['faq'], 'score': 1.0}  # score는 임시로 1.0
+        for item in faq_embeddings[:top_n]
+    ]
     return scored
 
 if __name__ == "__main__":
