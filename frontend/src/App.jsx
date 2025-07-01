@@ -3,6 +3,9 @@ import ReactMarkdown from 'react-markdown';
 import './App.css';
 import ChatLoading from './components/ChatLoading';
 
+// Vite 환경변수로 API URL 관리
+const API_URL = import.meta.env.VITE_API_URL;
+
 const MODEL_OPTIONS = [
   { label: 'Claude 3.7 sonnet', value: 'claude-3.7-sonnet' },
   { label: 'Claude 4.0 sonnet', value: 'claude-4.0-sonnet' },
@@ -84,7 +87,7 @@ function App() {
     setInput('');
     setIsBotTyping(true);
     try {
-      const res = await fetch('https://chatbot-5avk.onrender.com/chat', {
+      const res = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMsg, model })
@@ -258,6 +261,22 @@ function App() {
     );
   };
 
+  // 입력창 위에 추천 질문 노출 (상위 3개)
+  const quickQuestions = allFaqs.slice(0, 3);
+
+  // 입력값과 유사한 FAQ 질문 실시간 추천
+  const [autoCompleteFaqs, setAutoCompleteFaqs] = useState([]);
+
+  useEffect(() => {
+    if (!input.trim()) {
+      setAutoCompleteFaqs([]);
+      return;
+    }
+    // 간단한 포함 검색 (실제 서비스는 백엔드에 실시간 요청 권장)
+    const matches = allFaqs.filter(faq => faq.question.includes(input)).slice(0, 5);
+    setAutoCompleteFaqs(matches);
+  }, [input, allFaqs]);
+
   return (
     <div className="chat-container">
       <div className="chat-header-row">
@@ -316,6 +335,21 @@ function App() {
         {isBotTyping && <ChatLoading />}
         <div ref={messagesEndRef} />
       </div>
+      {/* 입력창 위에 추천 질문 버튼 노출 */}
+      {quickQuestions.length > 0 && (
+        <div className="quick-questions-row" style={{ display: 'flex', gap: '8px', margin: '8px 0' }}>
+          {quickQuestions.map((faq, idx) => (
+            <button
+              key={idx}
+              className="quick-question-btn"
+              style={{ padding: '6px 12px', borderRadius: '16px', border: '1px solid #eee', background: '#f8f8f8', cursor: 'pointer' }}
+              onClick={() => setInput(faq.question)}
+            >
+              {faq.question}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="chat-input-row">
         <div class="QuickMenu" onClick={handleQuickMenuToggle}>
           <div class="bar"></div>
@@ -339,6 +373,21 @@ function App() {
           className="chat-input"
           disabled={isSessionEnded}
         />
+        {/* 입력창 아래에 자동완성 추천 질문 노출 */}
+        {autoCompleteFaqs.length > 0 && (
+          <div className="autocomplete-faqs" style={{ position: 'absolute', background: '#fff', border: '1px solid #eee', borderRadius: '8px', marginTop: '4px', zIndex: 10, width: '80%' }}>
+            {autoCompleteFaqs.map((faq, idx) => (
+              <div
+                key={idx}
+                className="autocomplete-faq-item"
+                style={{ padding: '8px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
+                onClick={() => setInput(faq.question)}
+              >
+                {faq.question}
+              </div>
+            ))}
+          </div>
+        )}
         <button onClick={handleSend} className="send-btn" disabled={isSessionEnded}>전송</button>
         <button onClick={handleConnectAgent} className="agent-btn" disabled={isSessionEnded}>상담사 연결</button>
         {isSessionEnded && (
