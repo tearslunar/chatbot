@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>말하는 아이콘</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #f0f0f0;
+      font-family: sans-serif;
+    }
+
+    .icon-wrapper {
+      position: relative;
+    }
+
+    .icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #e87c1a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 32px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+
+    .icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    .speech-bubble {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: white;
+      padding: 14px 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      white-space: nowrap;
+      font-size: 16px;
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      pointer-events: none;
+      max-width: 300px;
+      text-align: center;
+    }
+
+    .speech-bubble.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .speech-bubble::after {
+      content: "";
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 10px solid white;
+    }
+
+    /* 아이콘 커졌다 작아지는 애니메이션 */
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.3);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .icon.pulse {
+      animation: pulse 0.6s ease forwards;
+    }
+  </style>
+</head>
+<body>
+  <div class="icon-wrapper">
+    <div class="speech-bubble" id="speech">안녕하세요!</div>
+    <div class="icon">
+      <img src="index.png" alt="아이콘 이미지" />
+    </div>
+  </div>
+
+  <script>
+    const bubble = document.getElementById('speech');
+    const icon = document.querySelector('.icon');
+    const messages = [
+      "무엇을 도와드릴까요?",
+      "상담사가 기다리고 있어요!",
+      "어서 눌러주세요!",
+      "빠른 상담이 가능해요!",
+      "클릭해보세요!",
+    ];
+
+    function showMessage() {
+      const message = messages[Math.floor(Math.random() * messages.length)];
+      bubble.textContent = message;
+      bubble.classList.add('show');
+
+      // 아이콘에 pulse 애니메이션 클래스 추가
+      icon.classList.add('pulse');
+
+      setTimeout(() => {
+        bubble.classList.remove('show');
+        // 애니메이션 클래스 제거해서 다음에 다시 적용 가능하게 함
+        icon.classList.remove('pulse');
+      }, 2500);
+    }
+
+    setInterval(showMessage, 5000);
+  </script>
+</body>
+</html>

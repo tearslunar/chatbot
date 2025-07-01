@@ -200,6 +200,47 @@ body {
   cursor: not-allowed;
 }
 
+.QuickMenu {
+  position: relative; /* 기준 anchor 역할 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #e87c1a;
+  border-radius: 50%;
+  cursor: pointer;
+  gap: 4px;
+}
+
+.QuickMenuContent {
+  position: absolute;
+  bottom: 45px; /* QuickMenu의 아래에서 위 방향으로 위치시킴 */
+  right: 0;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  padding: 12px;
+  width: 200px;
+  z-index: 100;
+}
+
+
+
+.QuickMenu:hover {
+  background: #ffb300;
+}
+
+
+.bar {
+  width: 20px;
+  height: 2px;
+  background-color: white;
+  border-radius: 1px;
+}
+
+
 @media (max-width: 700px) {
   .chat-container {
     width: 100vw;

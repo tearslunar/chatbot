@@ -32,6 +32,7 @@ function App() {
   const [isBotTyping, setIsBotTyping] = useState(false);
   const [isSessionEnded, setIsSessionEnded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [QuickMenuOpen, setQuickMenuOpen] = useState(false);
 
   // 대화가 바뀔 때마다 localStorage에 저장
   useEffect(() => {
@@ -99,6 +100,11 @@ function App() {
     setMessages(prev => ([...prev, { role: 'bot', content: '상담이 종료되었습니다. 언제든 다시 찾아주세요 ☀️' }]));
   };
 
+  //빠른메뉴
+  const handleQuickMenuToggle = () => {
+    setQuickMenuOpen(!QuickMenuOpen);
+  };
+
   // 상담 재시작
   const handleRestartSession = () => {
     setIsSessionEnded(false);
@@ -155,6 +161,17 @@ function App() {
         <div ref={messagesEndRef} />
       </div>
       <div className="chat-input-row">
+        <div class="QuickMenu" onClick={handleQuickMenuToggle}>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          {QuickMenuOpen && (
+            <div class="QuickMenuContent" >
+              <button className="QuickMenuButton" >임시</button>
+              <button className="QuickMenuButton" >임시</button>
+              <button className="QuickMenuButton" >임시</button>
+            </div>)}
+        </div>
         <input
           type="text"
           placeholder={isSessionEnded ? "상담이 종료되었습니다." : "메시지를 입력하세요..."}
