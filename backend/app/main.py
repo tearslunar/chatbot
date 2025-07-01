@@ -16,10 +16,13 @@ app = FastAPI()
 app.include_router(emotion_router)
 app.include_router(llm_router)
 
-# CORS 설정 (프론트엔드 로컬 개발용)
+# CORS 설정 (프론트엔드 도메인 명시)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://chatbot-1-uz5m.onrender.com",  # 프론트엔드 Render 도메인
+        "http://localhost:5173",                # 개발용(필요시)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -57,10 +60,12 @@ async def chat_endpoint(req: ChatRequest):
     history = req.history or []
 
     print(f"[로그] 사용자 메시지: {user_msg}")
+    # 내부 API 호출 주소를 환경변수로 관리
+    INTERNAL_API_BASE = os.environ.get("INTERNAL_API_BASE", "http://localhost:8000")
     async with httpx.AsyncClient() as client:
         # 감정 분석 비동기 호출
         emotion_task = client.post(
-            "http://localhost:8000/emotion-analyze-async",  # 아래에서 구현할 임시 엔드포인트
+            f"{INTERNAL_API_BASE}/emotion-analyze-async",
             json={"text": user_msg}
         )
         # FAQ 검색은 동기 처리
@@ -76,7 +81,7 @@ async def chat_endpoint(req: ChatRequest):
         print(f"[로그] 감정 트렌드: {emotion_trend}")
         # LLM 호출 비동기
         llm_task = client.post(
-            "http://localhost:8000/llm-answer-async",  # 아래에서 구현할 임시 엔드포인트
+            f"{INTERNAL_API_BASE}/llm-answer-async",
             json={
                 "user_message": user_msg,
                 "model_name": model_name,
