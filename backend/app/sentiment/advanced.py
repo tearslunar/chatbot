@@ -3,6 +3,9 @@ import requests
 from typing import Dict, List, Tuple
 from datetime import datetime
 import json
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
+import re
 
 # 욕설/부정어 사전 (간단 예시)
 NEGATIVE_WORDS = [
@@ -30,7 +33,7 @@ class EmotionAnalyzer:
         감정 유형: 긍정/부정/불만/분노/불안/중립/기쁨/슬픔/놀람
         감정 강도: 1-5 (1: 매우 약함, 5: 매우 강함)
         
-        JSON 형태로 답변해주세요:
+        아래 형태로 답변해주세요:
         {{"emotion": "감정유형", "intensity": 강도, "confidence": 신뢰도}}
         
         문장: {text}"""
@@ -43,11 +46,21 @@ class EmotionAnalyzer:
             print(f"[감정분석 원본 응답] {self.last_raw_response}")
             if resp.status_code == 200:
                 result = resp.json()
-                answer = result.get("answer") or result.get("content") or str(result)
+                answer = result.get("answer") or result.get("content") or result.get("message") or str(result)
                 
                 # JSON 파싱 시도
                 try:
-                    emotion_data = json.loads(answer)
+                    # 마크다운 코드 블록에서 JSON만 추출
+                    cleaned_answer = answer.strip()
+                    match = re.search(r'```json\s*(\{.*?\})\s*```', cleaned_answer, re.DOTALL)
+                    if match:
+                        cleaned_answer = match.group(1)
+                    else:
+                        # 혹시 다른 코드블록(``` ... ```)만 있을 때도 처리
+                        match = re.search(r'```\s*(\{.*?\})\s*```', cleaned_answer, re.DOTALL)
+                        if match:
+                            cleaned_answer = match.group(1)
+                    emotion_data = json.loads(cleaned_answer.strip())
                     # 욕설/부정어 사전 기반 보정
                     if any(word in text for word in NEGATIVE_WORDS):
                         emotion_data['emotion'] = '분노'
@@ -144,4 +157,13 @@ class EmotionAnalyzer:
         }
 
 # 전역 인스턴스
-emotion_analyzer = EmotionAnalyzer() 
+emotion_analyzer = EmotionAnalyzer()
+
+emotion_router = APIRouter()
+
+@emotion_router.post("/emotion-analyze-async")
+async def emotion_analyze_async(request: Request):
+    data = await request.json()
+    text = data.get("text", "")
+    result = emotion_analyzer.analyze_emotion(text)
+    return JSONResponse(content=result) 
