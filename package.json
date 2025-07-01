@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "lottie-react": "^2.4.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.53.2"
   }
 }
