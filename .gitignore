@@ -16,6 +16,7 @@ frontend/node_modules/
 # 환경변수/시크릿
 .env
 backend/.env
+for_ssh.pem
 
 # macOS
 .DS_Store
