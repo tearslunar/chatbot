@@ -55,84 +55,89 @@ def get_emotion_summary():
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
-    print("==== POST /chat 요청 도착 ====")
-    user_msg = req.message
-    print("user_msg:", user_msg)
-    model_name = req.model or "claude-3.7-sonnet"
-    print("model_name:", model_name)
-    history = req.history or []
-    print("history:", history)
+    try:
+        print("==== POST /chat 요청 도착 ====")
+        user_msg = req.message
+        print("user_msg:", user_msg)
+        model_name = req.model or "claude-3.7-sonnet"
+        print("model_name:", model_name)
+        history = req.history or []
+        print("history:", history)
 
-    INTERNAL_API_BASE = os.environ.get("INTERNAL_API_BASE", "http://localhost:8000")
-    print("INTERNAL_API_BASE:", INTERNAL_API_BASE)
+        INTERNAL_API_BASE = os.environ.get("INTERNAL_API_BASE", "http://localhost:8000")
+        print("INTERNAL_API_BASE:", INTERNAL_API_BASE)
 
-    async with httpx.AsyncClient() as client:
-        print("httpx.AsyncClient 생성")
-        # 감정 분석 비동기 호출
-        emotion_task = client.post(
-            f"{INTERNAL_API_BASE}/emotion-analyze-async",
-            json={"text": user_msg}
-        )
-        print("emotion_task 생성")
-        # FAQ 검색은 동기 처리
-        rag_faqs = search_faqs(user_msg, top_n=3)
-        print("rag_faqs:", rag_faqs)
-        # 감정 분석 결과 대기
-        emotion_resp = await emotion_task
-        print("emotion_resp status:", emotion_resp.status_code)
-        emotion_data = emotion_resp.json()
-        print("emotion_data:", emotion_data)
-        emotion_trend = emotion_analyzer.get_emotion_trend()
-        print("emotion_trend:", emotion_trend)
-        # LLM 호출 비동기
-        llm_task = client.post(
-            f"{INTERNAL_API_BASE}/llm-answer-async",
-            json={
-                "user_message": user_msg,
-                "model_name": model_name,
-                "rag_faqs": rag_faqs,
-                "emotion_data": emotion_data,
-                "history": history
+        async with httpx.AsyncClient() as client:
+            print("httpx.AsyncClient 생성")
+            # 감정 분석 비동기 호출
+            emotion_task = client.post(
+                f"{INTERNAL_API_BASE}/emotion-analyze-async",
+                json={"text": user_msg}
+            )
+            print("emotion_task 생성")
+            # FAQ 검색은 동기 처리
+            rag_faqs = search_faqs(user_msg, top_n=3)
+            print("rag_faqs:", rag_faqs)
+            # 감정 분석 결과 대기
+            emotion_resp = await emotion_task
+            print("emotion_resp status:", emotion_resp.status_code)
+            emotion_data = emotion_resp.json()
+            print("emotion_data:", emotion_data)
+            emotion_trend = emotion_analyzer.get_emotion_trend()
+            print("emotion_trend:", emotion_trend)
+            # LLM 호출 비동기
+            llm_task = client.post(
+                f"{INTERNAL_API_BASE}/llm-answer-async",
+                json={
+                    "user_message": user_msg,
+                    "model_name": model_name,
+                    "rag_faqs": rag_faqs,
+                    "emotion_data": emotion_data,
+                    "history": history
+                }
+            )
+            print("llm_task 생성")
+            llm_resp = await llm_task
+            print("llm_resp status:", llm_resp.status_code)
+            base_answer = llm_resp.json()["answer"]
+            print("base_answer:", base_answer)
+        # 감정 기반 응답 강화 (챗봇 메시지에만 적용)
+        enhanced_answer = emotion_response.get_emotion_enhanced_response(base_answer, emotion_data)
+        print("enhanced_answer:", enhanced_answer)
+        # 상담사 연결 제안 추가
+        escalation_suggestion = emotion_response.get_escalation_suggestion(emotion_data, emotion_trend)
+        if escalation_suggestion:
+            print("상담사 연결 제안 추가됨")
+            enhanced_answer += escalation_suggestion
+        # 보험 엔티티 추출
+        entities = extract_insurance_entities(user_msg)
+        print("entities:", entities)
+        # 상담사 연결 필요 여부
+        escalation_needed = emotion_analyzer.is_escalation_needed()
+        print("escalation_needed:", escalation_needed)
+        # 추천 FAQ 리스트 구성
+        recommended_faqs = [
+            {
+                'question': item['faq']['question'],
+                'answer': item['faq']['content'],
+                'score': round(item['score'], 3),
+                'category': item['faq'].get('subject', ''),
+                'tags': [item['faq'].get('subject', '')]
             }
+            for item in rag_faqs
+        ]
+        print("recommended_faqs:", recommended_faqs)
+        print("==== POST /chat 응답 완료 ====")
+        return ChatResponse(
+            answer=enhanced_answer, 
+            entities=entities, 
+            emotion=emotion_data,  # 사용자 메시지에 대한 감정만 반환
+            escalation_needed=escalation_needed,
+            recommended_faqs=recommended_faqs
         )
-        print("llm_task 생성")
-        llm_resp = await llm_task
-        print("llm_resp status:", llm_resp.status_code)
-        base_answer = llm_resp.json()["answer"]
-        print("base_answer:", base_answer)
-    # 감정 기반 응답 강화 (챗봇 메시지에만 적용)
-    enhanced_answer = emotion_response.get_emotion_enhanced_response(base_answer, emotion_data)
-    print("enhanced_answer:", enhanced_answer)
-    # 상담사 연결 제안 추가
-    escalation_suggestion = emotion_response.get_escalation_suggestion(emotion_data, emotion_trend)
-    if escalation_suggestion:
-        print("상담사 연결 제안 추가됨")
-        enhanced_answer += escalation_suggestion
-    # 보험 엔티티 추출
-    entities = extract_insurance_entities(user_msg)
-    print("entities:", entities)
-    # 상담사 연결 필요 여부
-    escalation_needed = emotion_analyzer.is_escalation_needed()
-    print("escalation_needed:", escalation_needed)
-    # 추천 FAQ 리스트 구성
-    recommended_faqs = [
-        {
-            'question': item['faq']['question'],
-            'answer': item['faq']['content'],
-            'score': round(item['score'], 3),
-            'category': item['faq'].get('subject', ''),
-            'tags': [item['faq'].get('subject', '')]
-        }
-        for item in rag_faqs
-    ]
-    print("recommended_faqs:", recommended_faqs)
-    print("==== POST /chat 응답 완료 ====")
-    return ChatResponse(
-        answer=enhanced_answer, 
-        entities=entities, 
-        emotion=emotion_data,  # 사용자 메시지에 대한 감정만 반환
-        escalation_needed=escalation_needed,
-        recommended_faqs=recommended_faqs
-    )
+    except Exception as e:
+        print("!!! /chat 처리 중 예외 발생:", e)
+        import traceback; traceback.print_exc()
+        raise
 
 handler = Mangum(app)
