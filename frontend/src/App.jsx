@@ -317,16 +317,11 @@ function App() {
         <div ref={messagesEndRef} />
       </div>
       <div className="chat-input-row">
-        <div class="QuickMenu" onClick={handleQuickMenuToggle}>
-          <div class="bar"></div>
-          <div class="bar"></div>
-          <div class="bar"></div>
-          {QuickMenuOpen && (
-            <div class="QuickMenuContent" >
-              <button className="QuickMenuButton" >임시</button>
-              <button className="QuickMenuButton" >임시</button>
-              <button className="QuickMenuButton" >임시</button>
-            </div>)}
+        <div className="QuickMenu" onClick={handleQuickMenuToggle}>
+          {/* 햄버거 메뉴 아이콘 또는 닫기 아이콘으로 변경될 수 있는 부분 */}
+          <div className="bar"></div>
+          <div className="bar"></div>
+          <div className="bar"></div>
         </div>
         <input
           type="text"
@@ -345,6 +340,34 @@ function App() {
           <button onClick={handleRestartSession} className="restart-btn">상담 재시작</button>
         )}
       </div>
+          {QuickMenuOpen && (
+            <div className="QuickMenuContent">
+              <button className="QuickMenuButton">
+                <span className="quick-menu-icon">📋</span>
+                <span>다이렉트<br />보험상품</span>
+              </button>
+              <button className="QuickMenuButton">
+                <span className="quick-menu-icon">💬</span>
+                <span>장기보험<br />채팅상담</span>
+              </button>
+              <button className="QuickMenuButton">
+                <span className="quick-menu-icon">👤</span>
+                <span>가입후기</span>
+              </button>
+              <button className="QuickMenuButton">
+                <span className="quick-menu-icon">🏢</span>
+                <span>손해보험<br />다이렉트 홈페이지</span>
+              </button>
+              <button className="QuickMenuButton">
+                <span className="quick-menu-icon">🏠</span>
+                <span>손해보험<br />홈페이지</span>
+              </button>
+              <button className="QuickMenuButton">
+                <span className="quick-menu-icon">❓</span>
+                <span>자주 묻는<br />질문</span>
+              </button>
+            </div>
+    )}
     </div>
   );
 }
