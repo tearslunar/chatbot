@@ -50,20 +50,27 @@ def cosine_similarity(a, b):
 faq_embeddings = None
 faq_list = None
 faiss_index = None
+model = None  # 모델도 전역으로 미리 로딩
 
-# 서버 시작 시 임베딩 및 인덱스 메모리 적재
+# 서버 시작 시 임베딩 및 인덱스, 모델 메모리 적재
 if os.path.exists(EMBEDDINGS_PATH):
     loaded = load_embeddings()
     faq_list = [item['faq'] for item in loaded]
     faq_embeddings = np.array([item['embedding'] for item in loaded], dtype='float32')
     faiss_index = faiss.IndexFlatL2(faq_embeddings.shape[1])
     faiss_index.add(faq_embeddings)
+    # 모델도 미리 로딩
+    from sentence_transformers import SentenceTransformer
+    model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
 else:
     print(f"[경고] FAQ 임베딩 파일이 존재하지 않습니다: {EMBEDDINGS_PATH}")
 
 # query 임베딩 생성 함수 (실제 운영 시 외부 API로 대체 가능)
 def get_query_embedding(query: str):
-    model = get_model()
+    global model
+    if model is None:
+        from sentence_transformers import SentenceTransformer
+        model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
     text = query.strip()
     return model.encode([text])[0].astype('float32')
 

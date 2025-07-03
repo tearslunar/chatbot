@@ -8,15 +8,16 @@ from fastapi.responses import JSONResponse
 import re
 
 # 욕설/부정어 사전 (간단 예시)
-NEGATIVE_WORDS = [
-    '짜증', '화나', '빡쳐', '개같', '씨발', '좆', '미친', '죽겠', '엿같', '지랄', '존나', '개새', '병신', '꺼져', '싫어', '실망', '불만', '불안', '분노', '짜증나', '답답', '최악', '실수', '에러', '오류', '망했', '짜증나', '화났', '빡침', '짜증남', '짜증나요', '화나요', '화가', '짜증이', '짜증을', '화가나', '화가남', '화가나요', '짜증나네', '화나네', '짜증나서', '화나서', '짜증나니까', '화나니까'
-]
+NEGATIVE_WORDS = list(set([
+    '짜증', '화나', '빡쳐', '개같', '씨발', '좆', '미친', '죽겠', '엿같', '지랄', '존나', '개새', '병신', '꺼져', '싫어', '실망', '불만', '불안', '분노', '짜증나', '답답', '최악', '실수', '에러', '오류', '망했', '화났', '빡침', '짜증남', '짜증나요', '화나요', '화가', '짜증이', '짜증을', '화가나', '화가남', '화가나요', '짜증나네', '화나네', '짜증나서', '화나서', '짜증나니까', '화나니까'
+]))
 
 class EmotionAnalyzer:
     def __init__(self):
         self.api_key = os.environ.get("POTENSDOT_API_KEY")
         self.emotion_history = []
         self.last_raw_response = None  # 원본 응답 저장
+        self.max_history = 100  # 최근 100개만 저장
         
     def analyze_emotion(self, text: str) -> Dict:
         """
@@ -41,53 +42,42 @@ class EmotionAnalyzer:
         data = {"prompt": prompt}
         
         try:
-            resp = requests.post(url, headers=headers, json=data)
+            resp = requests.post(url, headers=headers, json=data, timeout=15)
             self.last_raw_response = resp.text  # 원본 응답 저장
-            print(f"[감정분석 원본 응답] {self.last_raw_response}")
             if resp.status_code == 200:
                 result = resp.json()
                 answer = result.get("answer") or result.get("content") or result.get("message") or str(result)
                 
                 # JSON 파싱 시도
-                try:
-                    # 마크다운 코드 블록에서 JSON만 추출
-                    cleaned_answer = answer.strip()
-                    match = re.search(r'```json\s*(\{.*?\})\s*```', cleaned_answer, re.DOTALL)
+                cleaned_answer = answer.strip()
+                match = re.search(r'```json\s*(\{.*?\})\s*```', cleaned_answer, re.DOTALL)
+                if match:
+                    cleaned_answer = match.group(1)
+                else:
+                    # 혹시 다른 코드블록(``` ... ```)만 있을 때도 처리
+                    match = re.search(r'```\s*(\{.*?\})\s*```', cleaned_answer, re.DOTALL)
                     if match:
                         cleaned_answer = match.group(1)
-                    else:
-                        # 혹시 다른 코드블록(``` ... ```)만 있을 때도 처리
-                        match = re.search(r'```\s*(\{.*?\})\s*```', cleaned_answer, re.DOTALL)
-                        if match:
-                            cleaned_answer = match.group(1)
+                try:
                     emotion_data = json.loads(cleaned_answer.strip())
-                    # 욕설/부정어 사전 기반 보정
-                    if any(word in text for word in NEGATIVE_WORDS):
-                        emotion_data['emotion'] = '분노'
-                        emotion_data['intensity'] = 5
-                        emotion_data['confidence'] = 0.99
-                        print(f"[감정분석 보정] 욕설/부정어 감지 → 분노(5)로 보정")
-                    # threshold 조정: 부정/불만/분노/불안 등은 intensity 4 이상으로 보정
-                    if emotion_data.get('emotion') in ['부정', '불만', '분노', '불안', '슬픔'] and emotion_data.get('intensity', 3) < 4:
-                        emotion_data['intensity'] = 4
-                        print(f"[감정분석 보정] 부정 감정 intensity 4로 보정")
-                    emotion_data['timestamp'] = datetime.now().isoformat()
-                    self.emotion_history.append(emotion_data)
-                    return emotion_data
-                except Exception as e:
-                    print(f"[감정분석 파싱 실패] {e}")
-                    # JSON 파싱 실패 시 기본 형태로 반환
-                    return {
-                        "emotion": "중립",
-                        "intensity": 3,
-                        "confidence": 0.5,
-                        "timestamp": datetime.now().isoformat()
-                    }
+                except Exception:
+                    return self._get_default_emotion()
+                # 욕설/부정어 사전 기반 보정
+                if any(word in text for word in NEGATIVE_WORDS):
+                    emotion_data['emotion'] = '분노'
+                    emotion_data['intensity'] = 5
+                    emotion_data['confidence'] = 0.99
+                # threshold 조정: 부정/불만/분노/불안 등은 intensity 4 이상으로 보정
+                if emotion_data.get('emotion') in ['부정', '불만', '분노', '불안', '슬픔'] and emotion_data.get('intensity', 3) < 4:
+                    emotion_data['intensity'] = 4
+                emotion_data['timestamp'] = datetime.now().isoformat()
+                self.emotion_history.append(emotion_data)
+                if len(self.emotion_history) > self.max_history:
+                    self.emotion_history = self.emotion_history[-self.max_history:]
+                return emotion_data
             else:
-                print(f"[감정분석 API 에러] status_code: {resp.status_code}")
                 return self._get_default_emotion()
-        except Exception as e:
-            print(f"[감정분석 예외] {e}")
+        except Exception:
             return self._get_default_emotion()
     
     def _get_default_emotion(self) -> Dict:
