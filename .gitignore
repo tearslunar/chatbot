@@ -34,3 +34,10 @@ frontend/dist/
 # 기타
 .idea/
 *.swp
+
+# Firebase
+firebase.json
+.firebaserc
+
+*.bak
+*.orig
