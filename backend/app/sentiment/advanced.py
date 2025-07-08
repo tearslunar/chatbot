@@ -156,4 +156,9 @@ async def emotion_analyze_async(request: Request):
     data = await request.json()
     text = data.get("text", "")
     result = emotion_analyzer.analyze_emotion(text)
-    return JSONResponse(content=result) 
+    return JSONResponse(content=result)
+
+@emotion_router.post("/emotion-history-reset")
+async def emotion_history_reset():
+    emotion_analyzer.emotion_history = []
+    return JSONResponse(content={"result": "ok"}) 

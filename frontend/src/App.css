@@ -163,6 +163,15 @@ body {
 .chat-message ol {
   margin: 0.2em 0;
 }
+.chat-message ul {
+  margin: 8px 0 8px 20px;
+  padding-left: 20px;
+  list-style-type: disc;
+}
+.chat-message li {
+  margin-bottom: 4px;
+  line-height: 1.6;
+}
 
 /* 입력창 및 버튼 */
 .chat-input-row {

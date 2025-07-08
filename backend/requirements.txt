@@ -10,3 +10,4 @@ requests
 sentence-transformers
 faiss-cpu
 uvicorn
+pandas
