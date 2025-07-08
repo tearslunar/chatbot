@@ -79,8 +79,8 @@ def build_rag_prompt(user_message: str, rag_results: List[Dict] = None) -> str:
     
     return prompt
 
-def build_prompt_with_history(history, user_message, rag_results=None, emotion_data=None, persona_info=None):
-    """대화 이력과 이중 검색 결과를 포함한 프롬프트 생성"""
+def build_prompt_with_history(history, user_message, rag_results=None, emotion_data=None, persona_info=None, search_metadata=None):
+    """대화 이력과 대화 흐름 인식 검색 결과를 포함한 프롬프트 생성"""
     prompt = PERSONA_PROMPT.strip() + "\n\n"
     
     # 페르소나 정보 추가
@@ -108,6 +108,21 @@ def build_prompt_with_history(history, user_message, rag_results=None, emotion_d
     if emotion_data:
         prompt += f"현재 사용자의 감정은 '{emotion_data.get('emotion', '중립')}'(강도 {emotion_data.get('intensity', 3)})입니다. 이 감정에 공감하며 안내해 주세요.\n\n"
     
+    # 대화 흐름 컨텍스트 추가
+    if search_metadata:
+        conversation_flow = search_metadata.get('conversation_flow', '')
+        conversation_stage = search_metadata.get('conversation_stage', '')
+        
+        flow_context = f"""
+# 대화 흐름 분석
+
+대화 패턴: {conversation_flow}
+대화 단계: {conversation_stage}
+
+위 대화 흐름을 고려하여 자연스럽고 맥락에 맞는 응답을 제공해 주세요.
+"""
+        prompt += flow_context + "\n"
+    
     # 대화 이력 추가
     for turn in (history or []):
         if turn.get("role") == "user":
@@ -115,24 +130,42 @@ def build_prompt_with_history(history, user_message, rag_results=None, emotion_d
         elif turn.get("role") == "assistant":
             prompt += f"Assistant: {turn.get('content', '')}\n"
     
-    # 이중 검색 결과 추가 (FAQ + 약관)
+    # 대화 흐름 인식 검색 결과 추가 (FAQ + 약관 + 컨텍스트)
     if rag_results and len(rag_results) > 0:
         from backend.app.rag.hybrid_rag import format_results_for_prompt
         rag_text = format_results_for_prompt(rag_results)
-        prompt += f"아래는 현대해상 FAQ 및 약관 정보입니다.\n{rag_text}\n"
+        
+        # 검색 설명 추가
+        search_explanation = ""
+        if search_metadata:
+            strategy = search_metadata.get('search_strategy', 'balanced')
+            flow = search_metadata.get('conversation_flow', 'initial_inquiry')
+            
+            strategy_desc = {
+                'context_heavy': '이전 대화 내용을 중점적으로 고려',
+                'precision_focused': '정확한 정보에 집중',
+                'solution_oriented': '문제 해결에 특화',
+                'broad_search': '폭넓은 관점',
+                'comprehensive': '종합적인 관점',
+                'balanced': '균형잡힌 방식'
+            }.get(strategy, '균형잡힌 방식')
+            
+            search_explanation = f"({strategy_desc}으로 검색한 결과)"
+        
+        prompt += f"아래는 현대해상 FAQ 및 약관 정보입니다. {search_explanation}\n{rag_text}\n"
     
     # 마지막 질문 추가
     prompt += f"User: {user_message}\nAssistant:"
     return prompt
 
-def get_potensdot_answer(user_message: str, model_name: str = None, rag_results: List[Dict] = None, emotion_data: Dict = None, history: list = None, persona_info: Dict = None) -> str:
+def get_potensdot_answer(user_message: str, model_name: str = None, rag_results: List[Dict] = None, emotion_data: Dict = None, history: list = None, persona_info: Dict = None, search_metadata: Dict = None) -> str:
     api_key = os.environ.get("POTENSDOT_API_KEY")
     url = "https://ai.potens.ai/api/chat"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
-    prompt = build_prompt_with_history(history, user_message, rag_results, emotion_data, persona_info)
+    prompt = build_prompt_with_history(history, user_message, rag_results, emotion_data, persona_info, search_metadata)
     data = {"prompt": prompt}
     try:
         resp = requests.post(url, headers=headers, json=data, timeout=15)
@@ -196,5 +229,6 @@ async def llm_answer_async(request: Request):
     emotion_data = data.get("emotion_data", None)
     history = data.get("history", None)
     persona_info = data.get("persona_info", None)
-    answer = get_potensdot_answer(user_message, model_name, rag_results, emotion_data, history, persona_info)
+    search_metadata = data.get("search_metadata", None)
+    answer = get_potensdot_answer(user_message, model_name, rag_results, emotion_data, history, persona_info, search_metadata)
     return JSONResponse(content={"answer": answer}) 

@@ -196,10 +196,17 @@ async def chat_endpoint(req: ChatRequest):
                 json={"text": user_msg}
             )
             print("emotion_task 생성")
-            # 이중 검색 (FAQ + 약관) 동기 처리
+            # 대화 흐름 인식 향상된 검색 (FAQ + 약관 + 컨텍스트)
             t_rag_start = time.time()
-            rag_results = search_hybrid(user_msg, faq_top_n=3, terms_top_n=5, max_results=5)
-            print(f"[속도] 이중 검색 (FAQ+약관): {time.time() - t_rag_start:.2f}초")
+            from backend.app.rag.enhanced_hybrid_rag import search_with_conversation_context
+            enhanced_search_result = search_with_conversation_context(
+                history, user_msg, faq_top_n=3, terms_top_n=5, max_results=5
+            )
+            rag_results = enhanced_search_result["results"]
+            search_metadata = enhanced_search_result["search_metadata"]
+            print(f"[속도] 대화 흐름 인식 검색: {time.time() - t_rag_start:.2f}초")
+            print(f"검색 전략: {search_metadata.get('search_strategy')}")
+            print(f"대화 흐름: {search_metadata.get('conversation_flow')}")
             print("rag_results:", rag_results)
             # 감정 분석 결과 대기
             emotion_resp = await emotion_task
@@ -211,13 +218,14 @@ async def chat_endpoint(req: ChatRequest):
             print("emotion_trend:", emotion_trend)
             # LLM 호출 비동기
             t_llm_start = time.time()
-            # 프롬프트 경량화: 이중 검색 결과, 감정 정보는 emotion/intensity만, history는 최근 2개만 전달
+            # 프롬프트 경량화: 대화 흐름 인식 검색 결과, 감정 정보는 emotion/intensity만, history는 최근 2개만 전달
             llm_task = client.post(
                 f"{INTERNAL_API_BASE}/llm-answer-async",
                 json={
                     "user_message": user_msg,
                     "model_name": model_name,
-                    "rag_results": rag_results,  # 이중 검색 결과 전달
+                    "rag_results": rag_results,  # 대화 흐름 인식 검색 결과 전달
+                    "search_metadata": search_metadata,  # 검색 메타데이터 추가
                     "emotion_data": {
                         "emotion": emotion_data.get("emotion"),
                         "intensity": emotion_data.get("intensity")
