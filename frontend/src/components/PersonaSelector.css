@@ -1,0 +1,131 @@
+.persona-selector {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.persona-selector-toggle {
+  width: 100%;
+  background: #f8f9fb;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: border-color 0.2s;
+}
+
+.persona-selector-toggle:hover {
+  border-color: #e87c1a;
+}
+
+.dropdown-arrow {
+  font-size: 12px;
+  color: #888;
+}
+
+.persona-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 1000;
+  max-height: 300px;
+  overflow: hidden;
+}
+
+.persona-search {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.persona-search input {
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.persona-search input:focus {
+  border-color: #e87c1a;
+}
+
+.persona-list {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.persona-item {
+  padding: 12px;
+  border-bottom: 1px solid #f5f5f5;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.persona-item:hover {
+  background: #f8f9fb;
+}
+
+.persona-item.clear-option {
+  background: #fff3e0;
+  color: #e87c1a;
+  font-weight: 600;
+  text-align: center;
+}
+
+.persona-item.clear-option:hover {
+  background: #ffe3c2;
+}
+
+.persona-basic {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.persona-job {
+  background: #e3f2fd;
+  color: #1976d2;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.persona-details {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 2px;
+}
+
+.persona-interests {
+  font-size: 12px;
+  color: #888;
+}
+
+.persona-loading {
+  padding: 20px;
+  text-align: center;
+  color: #888;
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .persona-dropdown {
+    max-height: 250px;
+  }
+  
+  .persona-list {
+    max-height: 190px;
+  }
+} 

@@ -1,7 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './App.css';
 import ChatLoading from './components/ChatLoading';
+import SuggestedQuestions from './components/SuggestedQuestions';
+import PersonaSelector from './components/PersonaSelector';
+import faqData from './assets/hi_faq.json';
 
 // Vite 환경변수로 API URL 관리
 const API_URL = import.meta.env.VITE_API_URL;
@@ -55,6 +59,13 @@ function App() {
   const [expandedFAQ, setExpandedFAQ] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [selectedTag, setSelectedTag] = useState(null);
+  const [feedback, setFeedback] = useState('');
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [suggestedQuestions, setSuggestedQuestions] = useState([]);
+  const [resolutionResult, setResolutionResult] = useState(null);
+  const [fromSuggestion, setFromSuggestion] = useState(false);
+  const [selectedPersona, setSelectedPersona] = useState(null);
+  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
   // 대화가 바뀔 때마다 localStorage에 저장
   useEffect(() => {
@@ -81,7 +92,14 @@ function App() {
 
   // 메시지 전송 핸들러
   const handleSend = async () => {
-    if (!input.trim() || !model || isSessionEnded) return;
+    if (!input.trim() || !model) return;
+    
+    // 상담이 종료된 상태에서 새 메시지를 보내면 자동으로 재시작
+    if (isSessionEnded) {
+      setIsSessionEnded(false);
+      setResolutionResult(null); // 해소 분석 결과 초기화
+    }
+    
     const userMsg = input;
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setInput('');
@@ -90,7 +108,15 @@ function App() {
       const res = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg, model })
+        body: JSON.stringify({ 
+          message: userMsg, 
+          model,
+          session_id: sessionId,
+          history: messages.map(msg => ({
+            role: msg.role === 'bot' ? 'assistant' : msg.role,
+            content: msg.content
+          })).slice(-10) // 최근 10개 메시지만 전송
+        })
       });
       if (!res.ok) throw new Error('서버 오류');
       const data = await res.json();
@@ -134,10 +160,29 @@ function App() {
   };
 
   // 상담 종료 버튼 클릭 시 모달 오픈
-  const handleEndChatConfirm = () => {
+  const handleEndChatConfirm = async () => {
     setIsSessionEnded(true);
     setIsModalOpen(false);
+    setIsFeedbackModalOpen(true);
     setMessages(prev => ([...prev, { role: 'bot', content: '상담이 종료되었습니다. 언제든 다시 찾아주세요 ☀️' }]));
+    // 상담 종료 시점에 해소 분석 API 호출
+    try {
+      const res = await fetch(`${API_URL}/end-session`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setResolutionResult(data);
+        console.log('해소 분석 결과:', data);
+      }
+    } catch (e) {
+      console.warn('해소 분석 API 호출 실패:', e);
+    }
+  };
+
+  // 피드백 제출 핸들러
+  const handleFeedbackSubmit = () => {
+    console.log('상담 종료 피드백:', feedback);
+    setIsFeedbackModalOpen(false);
+    setFeedback('');
   };
 
   //빠른메뉴
@@ -151,15 +196,26 @@ function App() {
     setMessages([{ role: 'bot', content: '안녕하세요! 무엇을 도와드릴까요?' }]);
     setCurrentEmotion(null);
     setEmotionHistory([]);
+    setSelectedPersona(null);
+    setResolutionResult(null); // 감정 해소 분석 결과 초기화
   };
 
   // 히스토리 삭제(초기화)
-  const handleClearHistory = () => {
+  const handleClearHistory = async () => {
     setMessages([{ role: 'bot', content: '안녕하세요! 무엇을 도와드릴까요?' }]);
     setIsSessionEnded(false);
     setCurrentEmotion(null);
     setEmotionHistory([]);
+    setSelectedPersona(null);
+    setResolutionResult(null); // 감정 해소 분석 결과 초기화
     localStorage.removeItem(HISTORY_KEY);
+    // 백엔드 감정 기록도 같이 초기화
+    try {
+      await fetch(`${API_URL}/emotion-history-reset`, { method: 'POST' });
+    } catch (e) {
+      // 네트워크 오류 등 무시
+      console.warn('감정 기록 초기화 실패:', e);
+    }
   };
 
   // 감정 표시 컴포넌트
@@ -252,7 +308,7 @@ function App() {
             </div>
             {expandedFAQ === idx && (
               <div className="faq-answer">
-                <ReactMarkdown>{faq.answer}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{faq.answer}</ReactMarkdown>
               </div>
             )}
           </div>
@@ -276,6 +332,89 @@ function App() {
     const matches = allFaqs.filter(faq => faq.question.includes(input)).slice(0, 5);
     setAutoCompleteFaqs(matches);
   }, [input, allFaqs]);
+
+  function normalize(str) {
+    return str.toLowerCase().replace(/\s+/g, '');
+  }
+
+  const handleSuggestionSelect = (q) => {
+    setInput(q);
+    setSuggestedQuestions([]);
+    setFromSuggestion(true);
+  };
+
+  // 페르소나 선택 핸들러
+  const handlePersonaSelect = async (persona) => {
+    setSelectedPersona(persona);
+    
+    if (persona) {
+      try {
+        // 1. 페르소나 설정 API 호출
+        const res = await fetch(`${API_URL}/set-persona`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            persona_id: persona.ID
+          })
+        });
+        
+        if (res.ok) {
+          console.log('페르소나 설정 완료:', persona);
+          
+          // 2. 페르소나 기반 인사말 생성 및 채팅에 추가
+          const greetingRes = await fetch(`${API_URL}/get-persona-greeting`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              session_id: sessionId
+            })
+          });
+          
+          if (greetingRes.ok) {
+            const greetingData = await greetingRes.json();
+            if (greetingData.success) {
+              // 기존 메시지에 페르소나 맞춤형 인사말 추가
+              setMessages(prev => [...prev, { 
+                role: 'bot', 
+                content: greetingData.greeting 
+              }]);
+            }
+          } else {
+            console.error('페르소나 인사말 생성 실패');
+          }
+        } else {
+          console.error('페르소나 설정 실패');
+        }
+      } catch (e) {
+        console.error('페르소나 설정 실패:', e);
+      }
+    } else {
+      // 페르소나 선택 해제 시 기본 메시지 추가
+      setMessages(prev => [...prev, { 
+        role: 'bot', 
+        content: '페르소나 선택이 해제되었습니다. 일반적인 상담 모드로 전환됩니다. 😊\n\n무엇을 도와드릴까요?' 
+      }]);
+    }
+  };
+
+  useEffect(() => {
+    if (fromSuggestion) {
+      setFromSuggestion(false);
+      return;
+    }
+    if (!input.trim()) {
+      setSuggestedQuestions([]);
+      return;
+    }
+    const inputNorm = normalize(input);
+    const inputWords = inputNorm.split(/\s+/).filter(Boolean);
+    const matches = faqData.filter(faq => {
+      const qNorm = normalize(faq.question);
+      return inputWords.some(word => qNorm.includes(word));
+    }).map(faq => faq.question).slice(0, 10);
+    setSuggestedQuestions(matches);
+  }, [input]);
 
   return (
     <div className="chat-container">
@@ -315,10 +454,17 @@ function App() {
           ))}
         </select>
       </div>
+      
+      <div style={{ padding: '0 20px' }}>
+        <PersonaSelector 
+          onPersonaSelect={handlePersonaSelect}
+          selectedPersona={selectedPersona}
+        />
+      </div>
       <div className="chat-messages">
         {messages.map((msg, idx) => (
           <div key={idx} className={`chat-message ${msg.role}`}>
-            <ReactMarkdown>{msg.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
             {/* 사용자 메시지에만 감정 표시 */}
             {msg.role === 'user' && msg.emotion && <EmotionIndicator emotion={msg.emotion} />}
             {msg.escalation_needed && (
@@ -335,21 +481,11 @@ function App() {
         {isBotTyping && <ChatLoading />}
         <div ref={messagesEndRef} />
       </div>
-      {/* 입력창 위에 추천 질문 버튼 노출 */}
-      {quickQuestions.length > 0 && (
-        <div className="quick-questions-row" style={{ display: 'flex', gap: '8px', margin: '8px 0' }}>
-          {quickQuestions.map((faq, idx) => (
-            <button
-              key={idx}
-              className="quick-question-btn"
-              style={{ padding: '6px 12px', borderRadius: '16px', border: '1px solid #eee', background: '#f8f8f8', cursor: 'pointer' }}
-              onClick={() => setInput(faq.question)}
-            >
-              {faq.question}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* 입력창 위에 추천 질문 리스트 노출 */}
+      <SuggestedQuestions
+        questions={suggestedQuestions}
+        onSelect={handleSuggestionSelect}
+      />
       <div className="chat-input-row">
         <div className="QuickMenu" onClick={handleQuickMenuToggle}>
           {/* 햄버거 메뉴 아이콘 또는 닫기 아이콘으로 변경될 수 있는 부분 */}
@@ -417,6 +553,31 @@ function App() {
               </button>
             </div>
     )}
+      {/* 피드백 입력 모달 */}
+      {isFeedbackModalOpen && (
+        <div className="modal-background">
+          <div className="modal-content" style={{ minWidth: 320, maxWidth: 400, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: 220 }}>
+            <div className="modal-text" style={{ color: '#d2691e', marginBottom: 16 }}>상담 피드백을 남겨주세요</div>
+            <textarea
+              value={feedback}
+              onChange={e => setFeedback(e.target.value)}
+              placeholder="상담에 대한 의견이나 개선점을 자유롭게 입력해 주세요."
+              rows={4}
+              style={{ width: '100%', minHeight: 80, marginBottom: 32, borderRadius: 8, border: '1px solid #ddd', padding: 12, fontSize: 15, background: '#fafafa', color: '#222', resize: 'none' }}
+            />
+            <div className="modal-buttons" style={{ justifyContent: 'center', width: '100%' }}>
+              <button className="modal-button yes" onClick={handleFeedbackSubmit}>네</button>
+              <button className="modal-button no" onClick={() => { setIsFeedbackModalOpen(false); setFeedback(''); }}>아니요</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 상담 종료 시 해소 결과 알림 */}
+      {resolutionResult && (
+        <div style={{ background: resolutionResult.resolved ? '#e3fcec' : '#ffeaea', color: '#333', padding: '8px', borderRadius: '8px', margin: '12px 0', textAlign: 'center' }}>
+          {resolutionResult.resolved ? '상담 종료 시점에 고객 감정이 해소된 것으로 분석되었습니다.' : '상담 종료 시점에도 고객 감정이 해소되지 않은 것으로 분석되었습니다.'}
+        </div>
+      )}
     </div>
   );
 }
