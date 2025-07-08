@@ -65,45 +65,74 @@ User: 아니, 서류 다 냈는데 왜 아직도 처리가 안되는 거예요? 
 Assistant: 많이 답답하고 걱정되셨겠어요. 서류를 모두 제출하셨는데도 소식이 없으니 속상한 마음이 드는 건 당연해요. 제가 지금 바로 진행 상황을 확인해 보고, 현재 어떤 단계에 있는지 꼼꼼하게 알려드릴게요. 잠시만 기다려 주시겠어요? ☀️
 """
 
-def build_rag_prompt(user_message: str, rag_faqs: List[Dict] = None) -> str:
+def build_rag_prompt(user_message: str, rag_results: List[Dict] = None) -> str:
+    """이중 검색 결과를 포함한 프롬프트 생성"""
     prompt = PERSONA_PROMPT.strip() + "\n\n"
-    if rag_faqs and len(rag_faqs) > 0:
-        faq_text = '\n'.join([
-            f"Q: {item['faq']['question']}\nA: {item['faq']['content']}" for item in rag_faqs
-        ])
-        prompt += f"아래는 현대해상 FAQ입니다.\n{faq_text}\n\n사용자 질문: {user_message}\n위 FAQ를 참고하여 답변해 주세요."
+    
+    if rag_results and len(rag_results) > 0:
+        # 이중 검색 결과 포맷팅 (FAQ + 약관)
+        from backend.app.rag.hybrid_rag import format_results_for_prompt
+        rag_text = format_results_for_prompt(rag_results)
+        prompt += f"아래는 현대해상 FAQ 및 약관 정보입니다.\n{rag_text}\n\n사용자 질문: {user_message}\n위 정보를 참고하여 답변해 주세요."
     else:
         prompt += f"사용자 질문: {user_message}"
+    
     return prompt
 
-def build_prompt_with_history(history, user_message, rag_faqs=None, emotion_data=None):
+def build_prompt_with_history(history, user_message, rag_results=None, emotion_data=None, persona_info=None):
+    """대화 이력과 이중 검색 결과를 포함한 프롬프트 생성"""
     prompt = PERSONA_PROMPT.strip() + "\n\n"
+    
+    # 페르소나 정보 추가
+    if persona_info:
+        persona_context = f"""
+# 고객 페르소나 정보
+
+고객 프로필: {persona_info.get('성별', '')} {persona_info.get('연령대', '')}
+가족 구성: {persona_info.get('가족구성', '')}
+직업: {persona_info.get('직업', '')}
+소득 수준: {persona_info.get('소득수준', '')}
+거주 지역: {persona_info.get('거주지역', '')}
+생활 패턴: {persona_info.get('생활패턴', '')}
+가치관: {persona_info.get('가치관', '')}
+보험 관심사: {persona_info.get('보험관심사', '')}
+위험 인식도: {persona_info.get('위험인식도', '')}
+디지털 친숙도: {persona_info.get('디지털친숙도', '')}
+의사결정 스타일: {persona_info.get('의사결정스타일', '')}
+커뮤니케이션 선호: {persona_info.get('커뮤니케이션선호', '')}
+
+위 고객 정보를 바탕으로 고객의 상황과 특성에 맞는 맞춤형 상담을 제공해 주세요.
+"""
+        prompt += persona_context + "\n"
+    
     if emotion_data:
         prompt += f"현재 사용자의 감정은 '{emotion_data.get('emotion', '중립')}'(강도 {emotion_data.get('intensity', 3)})입니다. 이 감정에 공감하며 안내해 주세요.\n\n"
+    
     # 대화 이력 추가
     for turn in (history or []):
         if turn.get("role") == "user":
             prompt += f"User: {turn.get('content', '')}\n"
         elif turn.get("role") == "assistant":
             prompt += f"Assistant: {turn.get('content', '')}\n"
-    # FAQ 추가
-    if rag_faqs and len(rag_faqs) > 0:
-        faq_text = '\n'.join([
-            f"Q: {item['faq']['question']}\nA: {item['faq']['content']}" for item in rag_faqs
-        ])
-        prompt += f"아래는 현대해상 FAQ입니다.\n{faq_text}\n"
+    
+    # 이중 검색 결과 추가 (FAQ + 약관)
+    if rag_results and len(rag_results) > 0:
+        from backend.app.rag.hybrid_rag import format_results_for_prompt
+        rag_text = format_results_for_prompt(rag_results)
+        prompt += f"아래는 현대해상 FAQ 및 약관 정보입니다.\n{rag_text}\n"
+    
     # 마지막 질문 추가
     prompt += f"User: {user_message}\nAssistant:"
     return prompt
 
-def get_potensdot_answer(user_message: str, model_name: str = None, rag_faqs: List[Dict] = None, emotion_data: Dict = None, history: list = None) -> str:
+def get_potensdot_answer(user_message: str, model_name: str = None, rag_results: List[Dict] = None, emotion_data: Dict = None, history: list = None, persona_info: Dict = None) -> str:
     api_key = os.environ.get("POTENSDOT_API_KEY")
     url = "https://ai.potens.ai/api/chat"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
-    prompt = build_prompt_with_history(history, user_message, rag_faqs, emotion_data)
+    prompt = build_prompt_with_history(history, user_message, rag_results, emotion_data, persona_info)
     data = {"prompt": prompt}
     try:
         resp = requests.post(url, headers=headers, json=data, timeout=15)
@@ -163,8 +192,9 @@ async def llm_answer_async(request: Request):
     data = await request.json()
     user_message = data.get("user_message", "")
     model_name = data.get("model_name", None)
-    rag_faqs = data.get("rag_faqs", None)
+    rag_results = data.get("rag_results", None)
     emotion_data = data.get("emotion_data", None)
     history = data.get("history", None)
-    answer = get_potensdot_answer(user_message, model_name, rag_faqs, emotion_data, history)
+    persona_info = data.get("persona_info", None)
+    answer = get_potensdot_answer(user_message, model_name, rag_results, emotion_data, history, persona_info)
     return JSONResponse(content={"answer": answer}) 
