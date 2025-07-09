@@ -31,6 +31,20 @@ for_ssh.pem
 # 빌드/배포 산출물
 frontend/dist/
 
+# 모델 파일 및 임베딩 (크기가 큰 파일들)
+*.pkl
+*.h5
+*.hdf5
+*.model
+*.bin
+*.safetensors
+*embeddings*
+backend/app/rag/terms_embeddings.pkl
+backend/app/rag/*embeddings*
+
+# 데이터 폴더 (약관, 임베딩 파일 등)
+data/
+
 # 기타
 .idea/
 *.swp

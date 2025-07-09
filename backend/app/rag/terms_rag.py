@@ -9,8 +9,8 @@ import faiss
 import glob
 
 # 파일 경로
-TERMS_DIR = os.path.join(os.path.dirname(__file__), '현대해상_약관_fixed_txt')
-TERMS_EMBEDDINGS_PATH = os.path.join(os.path.dirname(__file__), 'terms_embeddings.pkl')
+TERMS_DIR = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', '현대해상_약관_fixed_txt')
+TERMS_EMBEDDINGS_PATH = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', 'terms_embeddings.pkl')
 
 def load_terms_data() -> List[Dict]:
     """약관 텍스트 파일들을 로딩하여 청크 단위로 분할"""

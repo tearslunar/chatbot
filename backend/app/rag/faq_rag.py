@@ -9,7 +9,7 @@ import faiss
 
 # 파일 경로
 FAQ_JSON_PATH = os.path.join(os.path.dirname(__file__), 'hi_faq.json')
-EMBEDDINGS_PATH = os.path.join(os.path.dirname(__file__), 'faq_embeddings.pkl')
+EMBEDDINGS_PATH = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', 'faq_embeddings.pkl')
 
 # 1. FAQ 데이터 로딩
 def load_faq_data():
