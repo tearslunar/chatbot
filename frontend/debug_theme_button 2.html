@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>테마 토글 버튼 테스트</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+      }
+
+      .test-header {
+        background: #e87c1a;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+        height: 56px;
+        border-radius: 24px 24px 0 0;
+        margin-bottom: 20px;
+      }
+
+      .test-title {
+        color: white;
+        font-weight: bold;
+        font-size: 1.25rem;
+      }
+
+      .test-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .test-theme-button {
+        background: rgba(255, 255, 255, 0.3);
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        color: white;
+        font-size: 1.2rem;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .test-theme-button:hover {
+        background: rgba(255, 255, 255, 0.4);
+        transform: scale(1.05);
+      }
+
+      .test-end-button {
+        background: white;
+        color: #e87c1a;
+        border: none;
+        border-radius: 12px;
+        padding: 8px 20px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .debug-info {
+        background: #f5f5f5;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+
+      .test-result {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+      }
+
+      .success {
+        background: #e8f5e8;
+        color: #2e7d32;
+      }
+
+      .error {
+        background: #ffebee;
+        color: #c62828;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>현대해상 AI 챗봇 - 테마 토글 버튼 테스트</h1>
+
+    <div class="test-header">
+      <div class="test-title">현대해상 AI 챗봇</div>
+      <div class="test-buttons">
+        <button
+          id="testThemeButton"
+          class="test-theme-button"
+          onclick="toggleTestTheme()"
+        >
+          🌙
+        </button>
+        <button class="test-end-button">상담 종료</button>
+        <button class="test-end-button">히스토리 삭제</button>
+      </div>
+    </div>
+
+    <div class="debug-info">
+      <h3>디버깅 정보</h3>
+      <div id="buttonTest" class="test-result">테스트 중...</div>
+      <div id="styleTest" class="test-result">스타일 확인 중...</div>
+      <div id="clickTest" class="test-result">클릭 테스트 대기 중...</div>
+    </div>
+
+    <div class="debug-info">
+      <h3>문제 해결 가이드</h3>
+      <ol>
+        <li>
+          <strong>브라우저 강제 새로고침</strong>: Ctrl+F5 (Windows) 또는
+          Cmd+Shift+R (Mac)
+        </li>
+        <li>
+          <strong>브라우저 캐시 삭제</strong>: 설정 → 개인정보 보호 → 브라우징
+          데이터 삭제
+        </li>
+        <li>
+          <strong>다른 브라우저에서 테스트</strong>: Chrome, Firefox, Safari,
+          Edge
+        </li>
+        <li>
+          <strong>개발자 도구 확인</strong>: F12 → Console에서 오류 메시지 확인
+        </li>
+      </ol>
+
+      <h4>개발자 도구 명령어</h4>
+      <pre>
+// 테마 토글 버튼 존재 여부 확인
+document.querySelector('.theme-toggle-button')
+
+// 모든 버튼 요소 확인
+document.querySelectorAll('button')
+
+// 헤더 버튼 컨테이너 확인
+document.querySelector('.chat-header-buttons')
+        </pre
+      >
+    </div>
+
+    <script>
+      let isDark = false;
+
+      function toggleTestTheme() {
+        const button = document.getElementById("testThemeButton");
+        const body = document.body;
+
+        if (isDark) {
+          button.textContent = "🌙";
+          body.style.background = "white";
+          body.style.color = "black";
+          isDark = false;
+          updateClickTest("라이트 모드로 변경됨");
+        } else {
+          button.textContent = "☀️";
+          body.style.background = "#1a1a1a";
+          body.style.color = "white";
+          isDark = true;
+          updateClickTest("다크 모드로 변경됨");
+        }
+      }
+
+      function updateClickTest(message) {
+        const clickTest = document.getElementById("clickTest");
+        clickTest.textContent = `클릭 테스트: ${message} ✅`;
+        clickTest.className = "test-result success";
+      }
+
+      // 페이지 로드 시 테스트 실행
+      window.onload = function () {
+        // 버튼 존재 테스트
+        const button = document.getElementById("testThemeButton");
+        const buttonTest = document.getElementById("buttonTest");
+
+        if (button) {
+          buttonTest.textContent = "테마 토글 버튼 발견 ✅";
+          buttonTest.className = "test-result success";
+        } else {
+          buttonTest.textContent = "테마 토글 버튼 없음 ❌";
+          buttonTest.className = "test-result error";
+        }
+
+        // 스타일 테스트
+        const styleTest = document.getElementById("styleTest");
+        const computedStyle = window.getComputedStyle(button);
+
+        if (
+          computedStyle.display !== "none" &&
+          computedStyle.visibility !== "hidden"
+        ) {
+          styleTest.textContent = `스타일 정상 ✅ (display: ${computedStyle.display})`;
+          styleTest.className = "test-result success";
+        } else {
+          styleTest.textContent = `스타일 문제 ❌ (display: ${computedStyle.display}, visibility: ${computedStyle.visibility})`;
+          styleTest.className = "test-result error";
+        }
+      };
+    </script>
+  </body>
+</html>
