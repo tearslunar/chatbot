@@ -18,6 +18,10 @@ class EmotionAnalyzer:
         self.emotion_history = []
         self.last_raw_response = None  # 원본 응답 저장
         self.max_history = 100  # 최근 100개만 저장
+        # 🚨 감정 강도 지속 모니터링 추가
+        self.high_intensity_threshold = 4  # 강도 4 이상을 고강도로 판단
+        self.consecutive_high_intensity_limit = 3  # 연속 3회 이상이면 상담 종료
+        self.session_termination_triggered = False  # 세션 종료 트리거 상태
         
     def analyze_emotion(self, text: str) -> Dict:
         """
@@ -146,6 +150,81 @@ class EmotionAnalyzer:
             "current_trend": self.get_emotion_trend()
         }
 
+    # 🚨 감정 강도 지속 모니터링 및 자동 상담 종료 기능
+    def check_consecutive_high_intensity(self) -> Dict:
+        """연속 고강도 감정 체크"""
+        if len(self.emotion_history) < self.consecutive_high_intensity_limit:
+            return {
+                "consecutive_count": 0,
+                "requires_termination": False,
+                "intensity_pattern": []
+            }
+        
+        # 최근 N개 메시지의 감정 강도 확인
+        recent_emotions = self.emotion_history[-self.consecutive_high_intensity_limit:]
+        intensity_pattern = [e.get('intensity', 3) for e in recent_emotions]
+        
+        # 모두 고강도(4 이상)인지 확인
+        consecutive_high_count = 0
+        for intensity in intensity_pattern:
+            if intensity >= self.high_intensity_threshold:
+                consecutive_high_count += 1
+            else:
+                consecutive_high_count = 0  # 연속성이 끊어지면 리셋
+        
+        requires_termination = consecutive_high_count >= self.consecutive_high_intensity_limit
+        
+        return {
+            "consecutive_count": consecutive_high_count,
+            "requires_termination": requires_termination,
+            "intensity_pattern": intensity_pattern,
+            "recent_emotions": [e.get('emotion') for e in recent_emotions]
+        }
+
+    def should_terminate_session(self) -> bool:
+        """세션 종료가 필요한지 판단"""
+        if self.session_termination_triggered:
+            return False  # 이미 종료 트리거된 경우 중복 방지
+        
+        high_intensity_check = self.check_consecutive_high_intensity()
+        
+        if high_intensity_check["requires_termination"]:
+            self.session_termination_triggered = True
+            return True
+        
+        return False
+
+    def get_termination_message(self) -> str:
+        """상담 종료 안내 메시지 생성"""
+        if not self.session_termination_triggered:
+            return ""
+        
+        high_intensity_check = self.check_consecutive_high_intensity()
+        recent_emotions = high_intensity_check.get("recent_emotions", [])
+        
+        return f"""
+
+🚨 **중요 안내** 🚨
+
+고객님의 감정 상태를 지속적으로 모니터링한 결과, 높은 강도의 감정({', '.join(recent_emotions)})이 연속으로 감지되었습니다.
+
+더 전문적이고 신속한 해결을 위해 **상담사와의 직접 상담**을 강력히 권장드립니다.
+
+**즉시 상담사 연결 방법:**
+📞 고객센터: 1588-5656
+💬 채팅 상담사 연결 버튼 클릭
+🌐 온라인 상담 신청
+
+AI 상담으로는 한계가 있는 복잡한 상황으로 판단됩니다. 
+전문 상담사가 고객님의 문제를 더 정확하고 빠르게 해결해드릴 수 있습니다. ☀️
+
+**상담이 자동으로 종료됩니다. 언제든 다시 시작하실 수 있습니다.**
+"""
+
+    def reset_termination_state(self):
+        """종료 상태 리셋 (새 세션 시작 시 사용)"""
+        self.session_termination_triggered = False
+
 # 전역 인스턴스
 emotion_analyzer = EmotionAnalyzer()
 
@@ -161,4 +240,19 @@ async def emotion_analyze_async(request: Request):
 @emotion_router.post("/emotion-history-reset")
 async def emotion_history_reset():
     emotion_analyzer.emotion_history = []
-    return JSONResponse(content={"result": "ok"}) 
+    emotion_analyzer.reset_termination_state()  # 🚨 종료 상태도 함께 리셋
+    return JSONResponse(content={"result": "ok"})
+
+@emotion_router.get("/emotion-intensity-status")
+async def emotion_intensity_status():
+    """현재 감정 강도 지속 상태 확인"""
+    high_intensity_check = emotion_analyzer.check_consecutive_high_intensity()
+    trend = emotion_analyzer.get_emotion_trend()
+    
+    return JSONResponse(content={
+        "consecutive_high_intensity": high_intensity_check,
+        "emotion_trend": trend,
+        "termination_triggered": emotion_analyzer.session_termination_triggered,
+        "recent_emotions": emotion_analyzer.emotion_history[-5:] if emotion_analyzer.emotion_history else [],
+        "risk_level": "high" if high_intensity_check.get("consecutive_count", 0) >= 2 else "medium" if high_intensity_check.get("consecutive_count", 0) >= 1 else "low"
+    }) 

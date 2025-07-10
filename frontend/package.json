@@ -12,6 +12,7 @@
   "dependencies": {
     "@playwright/test": "^1.53.2",
     "add": "^2.0.6",
+    "crypto-js": "^4.2.0",
     "git": "^0.1.5",
     "lottie-react": "^2.4.1",
     "package-lock.json": "^1.0.0",
