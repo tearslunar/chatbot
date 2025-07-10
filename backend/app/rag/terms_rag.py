@@ -95,7 +95,10 @@ def split_terms_content(content: str, file_path: str) -> List[str]:
 def get_model():
     """임베딩 모델 로딩"""
     from sentence_transformers import SentenceTransformer
-    return SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+    import torch
+    # GPU 메모리 부족 시 CPU 사용 강제
+    device = 'cpu' if not torch.cuda.is_available() or torch.cuda.get_device_properties(0).total_memory < 2000000000 else 'cuda'
+    return SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', device=device)
 
 def create_and_save_terms_embeddings():
     """약관 텍스트 임베딩 생성 및 저장"""
@@ -149,8 +152,7 @@ if os.path.exists(TERMS_EMBEDDINGS_PATH):
     terms_faiss_index.add(terms_embeddings)
     
     # 모델도 미리 로딩
-    from sentence_transformers import SentenceTransformer
-    terms_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+    terms_model = get_model()
     print(f"약관 인덱스 로딩 완료: {len(terms_list)}개 청크")
 else:
     print(f"[경고] 약관 임베딩 파일이 존재하지 않습니다: {TERMS_EMBEDDINGS_PATH}")
@@ -160,8 +162,7 @@ def get_query_embedding(query: str):
     """쿼리 임베딩 생성"""
     global terms_model
     if terms_model is None:
-        from sentence_transformers import SentenceTransformer
-        terms_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+        terms_model = get_model()
     text = query.strip()
     return terms_model.encode([text])[0].astype('float32')
 

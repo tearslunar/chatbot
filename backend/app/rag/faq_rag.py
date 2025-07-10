@@ -19,7 +19,10 @@ def load_faq_data():
 # 2. 임베딩 생성/저장/모델 로딩 (운영 서버에서는 사용하지 않음)
 def get_model():
     from sentence_transformers import SentenceTransformer
-    return SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+    import torch
+    # GPU 메모리 부족 시 CPU 사용 강제
+    device = 'cpu' if not torch.cuda.is_available() or torch.cuda.get_device_properties(0).total_memory < 2000000000 else 'cuda'
+    return SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', device=device)
 
 def create_and_save_embeddings():
     faqs = load_faq_data()
@@ -60,8 +63,7 @@ if os.path.exists(EMBEDDINGS_PATH):
     faiss_index = faiss.IndexFlatL2(faq_embeddings.shape[1])
     faiss_index.add(faq_embeddings)
     # 모델도 미리 로딩
-    from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+    model = get_model()
 else:
     print(f"[경고] FAQ 임베딩 파일이 존재하지 않습니다: {EMBEDDINGS_PATH}")
 
@@ -69,8 +71,7 @@ else:
 def get_query_embedding(query: str):
     global model
     if model is None:
-        from sentence_transformers import SentenceTransformer
-        model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+        model = get_model()
     text = query.strip()
     return model.encode([text])[0].astype('float32')
 

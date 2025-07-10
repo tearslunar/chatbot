@@ -1,0 +1,575 @@
+/* 보험 정보 카드 스타일 */
+.insurance-info-card {
+  position: relative;
+  background: var(--surface-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  margin: 12px 0;
+  box-shadow: 0 4px 12px var(--shadow-light);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.insurance-info-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px var(--shadow-medium);
+  border-color: var(--accent-bg);
+}
+
+/* 인기 상품 배지 */
+.popularity-badge {
+  position: absolute;
+  top: -2px;
+  right: 20px;
+  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 0 0 12px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* 카드 헤더 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.category-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.category-icon {
+  font-size: 24px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.category-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-bg);
+  background: var(--accent-bg-light);
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rating-stars {
+  color: #ffc107;
+  font-size: 14px;
+}
+
+.rating-number {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* 카드 본문 */
+.card-body {
+  margin-bottom: 20px;
+}
+
+.product-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+  line-height: 1.3;
+}
+
+/* 보험료 정보 */
+.premium-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--secondary-bg);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-color);
+}
+
+.monthly-premium {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.premium-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.premium-amount {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-bg);
+}
+
+.coverage-amount {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: right;
+}
+
+.coverage-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.coverage-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* 가입 연령 */
+.age-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: var(--chat-user-bg);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.age-icon {
+  font-size: 16px;
+}
+
+.age-text {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* 주요 보장 */
+.key-features {
+  margin-bottom: 16px;
+}
+
+.features-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.features-title:before {
+  content: "🛡️";
+  font-size: 14px;
+}
+
+.features-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.feature-icon {
+  color: #4caf50;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.feature-text {
+  font-weight: 500;
+}
+
+/* 특별 혜택 */
+.special-benefits {
+  margin-bottom: 16px;
+}
+
+.benefits-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.benefits-title:before {
+  content: "🎁";
+  font-size: 14px;
+}
+
+.benefits-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.benefit-tag {
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  color: #1565c0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid #90caf9;
+}
+
+/* 할인 혜택 */
+.discounts {
+  margin-bottom: 16px;
+}
+
+.discounts-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.discounts-title:before {
+  content: "💰";
+  font-size: 14px;
+}
+
+.discount-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.discount-tag {
+  background: linear-gradient(135deg, #fff3e0, #ffcc80);
+  color: #e65100;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid #ffb74d;
+}
+
+/* 가입 조건 */
+.conditions {
+  margin-bottom: 16px;
+}
+
+.conditions-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.conditions-title:before {
+  content: "📋";
+  font-size: 14px;
+}
+
+.conditions-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.condition-item {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  padding-left: 16px;
+  position: relative;
+}
+
+.condition-item:before {
+  content: "•";
+  color: var(--accent-bg);
+  font-weight: 700;
+  position: absolute;
+  left: 6px;
+}
+
+/* 카드 액션 버튼 */
+.card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 120px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.btn-icon {
+  font-size: 14px;
+}
+
+.btn-text {
+  white-space: nowrap;
+}
+
+.calculate-btn {
+  background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+  color: #7b1fa2;
+  border: 1px solid #ce93d8;
+}
+
+.calculate-btn:hover {
+  background: linear-gradient(135deg, #e1bee7, #ce93d8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(123, 31, 162, 0.2);
+}
+
+.details-btn {
+  background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
+  color: #2e7d32;
+  border: 1px solid #81c784;
+}
+
+.details-btn:hover {
+  background: linear-gradient(135deg, #c8e6c9, #a5d6a7);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
+}
+
+.subscribe-btn {
+  background: linear-gradient(135deg, var(--accent-bg), var(--accent-hover));
+  color: var(--text-on-accent);
+  border: 1px solid var(--accent-hover);
+}
+
+.subscribe-btn:hover {
+  background: linear-gradient(135deg, var(--accent-hover), #d86f15);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(232, 124, 26, 0.3);
+}
+
+/* 비교 컴포넌트 */
+.insurance-comparison {
+  margin: 20px 0;
+  padding: 20px;
+  background: var(--secondary-bg);
+  border-radius: 16px;
+  border: 2px solid var(--border-color);
+}
+
+.comparison-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.comparison-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.comparison-icon {
+  font-size: 24px;
+}
+
+.comparison-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.comparison-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 700px) {
+  .insurance-info-card {
+    padding: 16px;
+    margin: 8px 0;
+  }
+
+  .product-name {
+    font-size: 18px;
+  }
+
+  .premium-info {
+    padding: 12px;
+  }
+
+  .premium-amount {
+    font-size: 16px;
+  }
+
+  .coverage-value {
+    font-size: 14px;
+  }
+
+  .features-list {
+    grid-template-columns: 1fr;
+  }
+
+  .card-actions {
+    flex-direction: column;
+  }
+
+  .action-btn {
+    min-width: 100%;
+  }
+
+  .comparison-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-header {
+    margin-bottom: 16px;
+  }
+
+  .comparison-title {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .insurance-info-card {
+    padding: 12px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .premium-info {
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+  }
+
+  .coverage-amount {
+    text-align: left;
+  }
+
+  .product-name {
+    font-size: 16px;
+  }
+
+  .category-name {
+    font-size: 12px;
+    padding: 3px 8px;
+  }
+
+  .benefits-tags,
+  .discount-tags {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .benefit-tag,
+  .discount-tag {
+    width: fit-content;
+  }
+}
+
+/* 접근성 개선 */
+@media (prefers-reduced-motion: reduce) {
+  .insurance-info-card,
+  .action-btn,
+  .popularity-badge {
+    transition: none;
+    animation: none;
+  }
+
+  .insurance-info-card:hover {
+    transform: none;
+  }
+
+  .action-btn:hover {
+    transform: none;
+  }
+}
+
+/* 고대비 모드 */
+@media (prefers-contrast: high) {
+  .insurance-info-card {
+    border-width: 3px;
+  }
+
+  .action-btn {
+    border-width: 2px;
+  }
+
+  .benefit-tag,
+  .discount-tag {
+    border-width: 2px;
+  }
+}
+
+/* 포커스 스타일 */
+.action-btn:focus {
+  outline: 3px solid var(--accent-bg);
+  outline-offset: 2px;
+}
+
+.insurance-info-card:focus-within {
+  border-color: var(--accent-bg);
+  box-shadow: 0 0 0 3px rgba(232, 124, 26, 0.2);
+} 

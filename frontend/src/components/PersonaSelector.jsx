@@ -21,7 +21,11 @@ function PersonaSelector({ onPersonaSelect, selectedPersona }) {
       if (searchKeyword) params.append('keyword', searchKeyword);
       params.append('limit', '20');
       
-      const res = await fetch(`${API_URL}/persona-list?${params}`);
+      const res = await fetch(`${API_URL}/persona-list?${params}`, {
+        headers: {
+          'ngrok-skip-browser-warning': 'true'
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         setPersonas(data);

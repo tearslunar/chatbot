@@ -21,13 +21,26 @@ app = FastAPI()
 app.include_router(emotion_router)
 app.include_router(llm_router)
 
-# CORS 설정 (프론트엔드 도메인 명시)
+# CORS 설정 (환경변수로 관리)
+allowed_origins_str = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173")
+allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
+
+# 임시 하드코딩 (환경변수 문제 해결용)
+if not allowed_origins or len(allowed_origins) == 1 and allowed_origins[0] == "http://localhost:5173":
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://localhost:5173", 
+        "https://new-hyundai-chatbot.web.app",
+        "https://new-hyundai-chatbot.firebaseapp.com",
+        "https://218457e5970e.ngrok-free.app"
+    ]
+    print(f"[DEBUG] Using hardcoded CORS origins: {allowed_origins}")
+else:
+    print(f"[DEBUG] Using env CORS origins: {allowed_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://chatbot-1-uz5m.onrender.com",  # 프론트엔드 Render 도메인
-        "http://localhost:5173",                # 개발용(필요시)
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -184,7 +197,7 @@ async def chat_endpoint(req: ChatRequest):
         persona_info = session_persona_map.get(session_id)
         print("persona_info:", persona_info)
 
-        INTERNAL_API_BASE = os.environ.get("INTERNAL_API_BASE", "http://localhost:8000")
+        INTERNAL_API_BASE = os.environ.get("INTERNAL_API_BASE", "http://localhost:8888")
         print("INTERNAL_API_BASE:", INTERNAL_API_BASE)
 
         async with httpx.AsyncClient() as client:

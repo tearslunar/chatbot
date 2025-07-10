@@ -79,83 +79,113 @@ def build_rag_prompt(user_message: str, rag_results: List[Dict] = None) -> str:
     
     return prompt
 
-def build_prompt_with_history(history, user_message, rag_results=None, emotion_data=None, persona_info=None, search_metadata=None):
-    """대화 이력과 대화 흐름 인식 검색 결과를 포함한 프롬프트 생성"""
-    prompt = PERSONA_PROMPT.strip() + "\n\n"
+def select_relevant_history(history, current_message, max_turns=5):
+    """현재 메시지와 관련성이 높은 대화 이력 선별"""
+    if not history or len(history) <= 3:
+        return history
     
-    # 페르소나 정보 추가
-    if persona_info:
-        persona_context = f"""
-# 고객 페르소나 정보
-
-고객 프로필: {persona_info.get('성별', '')} {persona_info.get('연령대', '')}
-가족 구성: {persona_info.get('가족구성', '')}
-직업: {persona_info.get('직업', '')}
-소득 수준: {persona_info.get('소득수준', '')}
-거주 지역: {persona_info.get('거주지역', '')}
-생활 패턴: {persona_info.get('생활패턴', '')}
-가치관: {persona_info.get('가치관', '')}
-보험 관심사: {persona_info.get('보험관심사', '')}
-위험 인식도: {persona_info.get('위험인식도', '')}
-디지털 친숙도: {persona_info.get('디지털친숙도', '')}
-의사결정 스타일: {persona_info.get('의사결정스타일', '')}
-커뮤니케이션 선호: {persona_info.get('커뮤니케이션선호', '')}
-
-위 고객 정보를 바탕으로 고객의 상황과 특성에 맞는 맞춤형 상담을 제공해 주세요.
-"""
-        prompt += persona_context + "\n"
+    # 최근 2개는 무조건 포함
+    recent = history[-2:]
     
-    if emotion_data:
-        prompt += f"현재 사용자의 감정은 '{emotion_data.get('emotion', '중립')}'(강도 {emotion_data.get('intensity', 3)})입니다. 이 감정에 공감하며 안내해 주세요.\n\n"
+    # 현재 메시지에서 키워드 추출
+    import re
+    current_keywords = set(re.findall(r'\b\w+\b', current_message.lower()))
     
-    # 대화 흐름 컨텍스트 추가
-    if search_metadata:
-        conversation_flow = search_metadata.get('conversation_flow', '')
-        conversation_stage = search_metadata.get('conversation_stage', '')
+    # 키워드 기반 관련 대화 찾기
+    relevant_history = []
+    for turn in history[:-2]:
+        content = turn.get('content', '').lower()
+        turn_keywords = set(re.findall(r'\b\w+\b', content))
         
-        flow_context = f"""
-# 대화 흐름 분석
-
-대화 패턴: {conversation_flow}
-대화 단계: {conversation_stage}
-
-위 대화 흐름을 고려하여 자연스럽고 맥락에 맞는 응답을 제공해 주세요.
-"""
-        prompt += flow_context + "\n"
+        # 키워드 겹치는 정도로 관련성 측정
+        overlap = len(current_keywords & turn_keywords)
+        if overlap >= 2:  # 2개 이상 키워드 겹치면 관련성 있음
+            relevant_history.append((turn, overlap))
     
-    # 대화 이력 추가
-    for turn in (history or []):
+    # 관련성 높은 순으로 정렬하고 최대 3개 선택
+    relevant_history.sort(key=lambda x: x[1], reverse=True)
+    selected = [turn for turn, _ in relevant_history[:3]]
+    
+    return selected + recent
+
+def build_prompt_with_history(history, user_message, rag_results=None, emotion_data=None, persona_info=None, search_metadata=None):
+    """대화 이력과 대화 흐름 인식 검색 결과를 포함한 프롬프트 생성 (경량화 버전)"""
+    # 기본 페르소나 (단축 버전)
+    prompt = """# 페르소나
+당신은 현대해상의 AI 상담 챗봇 '햇살봇'입니다. 고객에게 따뜻하고 도움이 되는 보험 상담을 제공합니다.
+
+# 핵심 원칙
+- 감정 먼저 공감하기: 고객의 감정을 먼저 인정하고 보듬기
+- 결론 먼저 제시: 핵심 답변부터 간결하게 시작
+- 구조화된 설명: 불릿(•), 번호 활용해 가독성 높이기
+- 긍정적 어조: 햇살(☀️), 미소(😊) 이모지로 친근함 표현
+
+"""
+    
+    # 페르소나 정보 (핵심만 + 개인화 중요 필드)
+    if persona_info:
+        # 기본 정보
+        persona_summary = f"고객: {persona_info.get('성별', '')} {persona_info.get('연령대', '')}, {persona_info.get('직업', '')}, {persona_info.get('가족구성', '')}"
+        
+        # 개인화에 중요한 추가 필드 (조건부)
+        important_fields = []
+        if persona_info.get('소득수준'):
+            important_fields.append(f"소득: {persona_info.get('소득수준')}")
+        if persona_info.get('보험관심사'):
+            important_fields.append(f"관심사: {persona_info.get('보험관심사')}")
+        if persona_info.get('의사결정스타일'):
+            important_fields.append(f"결정스타일: {persona_info.get('의사결정스타일')}")
+        
+        if important_fields:
+            persona_summary += f" | {', '.join(important_fields[:2])}"  # 최대 2개만
+        
+        prompt += persona_summary + "\n"
+    
+    # 감정 정보 (간단히 + 응답 스타일 가이드)
+    if emotion_data:
+        emotion = emotion_data.get('emotion', '중립')
+        intensity = emotion_data.get('intensity', 3)
+        
+        # 감정별 응답 스타일 매핑
+        emotional_guidance = {
+            '불만': "해결책 중심으로 차분하게",
+            '분노': "공감 먼저, 즉시 해결책",
+            '불안': "안심시키며 단계별로",
+            '긍정': "활기차고 정보 풍부하게",
+            '슬픔': "따뜻하게 위로하며"
+        }
+        
+        guidance = emotional_guidance.get(emotion, "")
+        if guidance:
+            prompt += f"감정: {emotion} (강도 {intensity}) → {guidance}\n"
+        else:
+            prompt += f"감정: {emotion} (강도 {intensity})\n"
+    
+    prompt += "\n"
+    
+    # 대화 이력 (관련성 기반 지능형 선별)
+    relevant_history = select_relevant_history(history or [], user_message)
+    for turn in relevant_history:
         if turn.get("role") == "user":
             prompt += f"User: {turn.get('content', '')}\n"
         elif turn.get("role") == "assistant":
             prompt += f"Assistant: {turn.get('content', '')}\n"
     
-    # 대화 흐름 인식 검색 결과 추가 (FAQ + 약관 + 컨텍스트)
+    # RAG 결과 (핵심만, 최대 3개)
     if rag_results and len(rag_results) > 0:
-        from backend.app.rag.hybrid_rag import format_results_for_prompt
-        rag_text = format_results_for_prompt(rag_results)
-        
-        # 검색 설명 추가
-        search_explanation = ""
-        if search_metadata:
-            strategy = search_metadata.get('search_strategy', 'balanced')
-            flow = search_metadata.get('conversation_flow', 'initial_inquiry')
-            
-            strategy_desc = {
-                'context_heavy': '이전 대화 내용을 중점적으로 고려',
-                'precision_focused': '정확한 정보에 집중',
-                'solution_oriented': '문제 해결에 특화',
-                'broad_search': '폭넓은 관점',
-                'comprehensive': '종합적인 관점',
-                'balanced': '균형잡힌 방식'
-            }.get(strategy, '균형잡힌 방식')
-            
-            search_explanation = f"({strategy_desc}으로 검색한 결과)"
-        
-        prompt += f"아래는 현대해상 FAQ 및 약관 정보입니다. {search_explanation}\n{rag_text}\n"
+        prompt += "\n# 참고 정보\n"
+        for i, item in enumerate(rag_results[:3]):  # 최대 3개만
+            if item.get('source_type') == 'faq':
+                faq = item.get('faq', {})
+                prompt += f"FAQ: {faq.get('question', '')} - {faq.get('content', '')[:200]}...\n"
+            elif item.get('source_type') == 'terms':
+                terms = item.get('terms', {})
+                prompt += f"약관: {terms.get('title', '')} - {terms.get('content', '')[:200]}...\n"
+        prompt += "\n"
     
-    # 마지막 질문 추가
+    # 마지막 질문
     prompt += f"User: {user_message}\nAssistant:"
+    
     return prompt
 
 def get_potensdot_answer(user_message: str, model_name: str = None, rag_results: List[Dict] = None, emotion_data: Dict = None, history: list = None, persona_info: Dict = None, search_metadata: Dict = None) -> str:
@@ -166,16 +196,32 @@ def get_potensdot_answer(user_message: str, model_name: str = None, rag_results:
         "Authorization": f"Bearer {api_key}"
     }
     prompt = build_prompt_with_history(history, user_message, rag_results, emotion_data, persona_info, search_metadata)
+    
+    # 프롬프트 크기 로깅
+    prompt_length = len(prompt)
+    print(f"[Potens.AI API] 프롬프트 길이: {prompt_length} 문자")
+    if prompt_length > 8000:
+        print(f"[Potens.AI API] 경고: 프롬프트가 너무 깁니다! ({prompt_length} > 8000)")
+    
     data = {"prompt": prompt}
     try:
-        resp = requests.post(url, headers=headers, json=data, timeout=15)
+        # 타임아웃을 30초로 증가
+        resp = requests.post(url, headers=headers, json=data, timeout=30)
         if resp.status_code == 200:
             result = resp.json()
             return result.get("message") or result.get("content") or "답변을 생성하지 못했습니다."
+        elif resp.status_code == 500:
+            print(f"[Potens.AI API] 서버 에러 발생")
+            print(f"[Potens.AI API] 프롬프트 길이: {len(data['prompt'])}")
+            print(f"[Potens.AI API] response: {resp.text}")
+            return "죄송합니다. 일시적인 서버 문제로 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요. ☀️"
         else:
             print(f"[Potens.AI API] status_code: {resp.status_code}")
             print(f"[Potens.AI API] response: {resp.text}")
             return f"챗봇 응답에 문제가 발생했습니다. (상태코드: {resp.status_code}) 관리자에게 문의해 주세요."
+    except requests.exceptions.Timeout:
+        print(f"[Potens.AI API] 타임아웃 발생 (30초 초과)")
+        return "응답 시간이 지연되고 있습니다. 잠시 후 다시 시도해주세요. 😊"
     except Exception as e:
         print(f"[Potens.AI API] Exception: {e}")
         return f"챗봇 응답에 일시적 문제가 발생했습니다. (에러: {e}) 관리자에게 문의해 주세요."

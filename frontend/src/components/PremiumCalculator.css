@@ -1,0 +1,592 @@
+/* 보험료 계산기 스타일 */
+.premium-calculator {
+  background: var(--surface-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  margin: 16px 0;
+  box-shadow: 0 4px 16px var(--shadow-light);
+  transition: all 0.3s ease;
+}
+
+.premium-calculator:hover {
+  box-shadow: 0 6px 20px var(--shadow-medium);
+  border-color: var(--accent-bg);
+}
+
+/* 계산기 헤더 */
+.calculator-header {
+  text-align: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.calculator-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.calculator-icon {
+  font-size: 28px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.calculator-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* 폼 스타일 */
+.calculator-form {
+  margin-bottom: 24px;
+}
+
+.form-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--secondary-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title:before {
+  content: "📝";
+  font-size: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.form-row:last-child {
+  margin-bottom: 0;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.form-field input,
+.form-field select {
+  padding: 12px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--chat-user-bg);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  outline: none;
+  border-color: var(--accent-bg);
+  box-shadow: 0 0 0 3px rgba(232, 124, 26, 0.1);
+  background: var(--surface-bg);
+}
+
+.form-field input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.form-field select option {
+  background: var(--surface-bg);
+  color: var(--text-primary);
+}
+
+/* 계산 버튼 */
+.calculator-actions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.calculate-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 32px;
+  background: linear-gradient(135deg, var(--accent-bg), var(--accent-hover));
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(232, 124, 26, 0.3);
+  min-width: 200px;
+}
+
+.calculate-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--accent-hover), #d86f15);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(232, 124, 26, 0.4);
+}
+
+.calculate-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 8px rgba(232, 124, 26, 0.2);
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 계산 결과 */
+.calculation-result {
+  background: var(--chat-user-bg);
+  border: 2px solid var(--accent-bg);
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 24px;
+  animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.result-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.result-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.result-icon {
+  font-size: 24px;
+}
+
+/* 보험료 분석 */
+.premium-breakdown {
+  background: var(--surface-bg);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.premium-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.premium-item:last-child {
+  border-bottom: none;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 2px solid var(--accent-bg);
+}
+
+.premium-item.final {
+  background: linear-gradient(135deg, #fff3e0, #ffcc80);
+  margin: 16px -20px 0 -20px;
+  padding: 16px 20px;
+  border-radius: 0 0 12px 12px;
+  border-bottom: none;
+  border-top: 2px solid var(--accent-bg);
+}
+
+.premium-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.premium-value {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.premium-value.base {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+
+.premium-value.discount {
+  color: #d32f2f;
+}
+
+.premium-value.final {
+  color: var(--accent-bg);
+  font-size: 24px;
+}
+
+/* 적용된 할인 */
+.applied-discounts {
+  background: var(--secondary-bg);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.discounts-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.discounts-title:before {
+  content: "🎯";
+  font-size: 16px;
+}
+
+.discounts-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.discount-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--surface-bg);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.discount-item:last-child {
+  margin-bottom: 0;
+}
+
+.discount-icon {
+  font-size: 14px;
+  color: var(--accent-bg);
+}
+
+.discount-text {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* 결과 액션 버튼 */
+.result-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  max-width: 160px;
+}
+
+.save-quote {
+  background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
+  color: #2e7d32;
+  border: 1px solid #81c784;
+}
+
+.save-quote:hover {
+  background: linear-gradient(135deg, #c8e6c9, #a5d6a7);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
+}
+
+.subscribe-now {
+  background: linear-gradient(135deg, var(--accent-bg), var(--accent-hover));
+  color: var(--text-on-accent);
+  border: 1px solid var(--accent-hover);
+}
+
+.subscribe-now:hover {
+  background: linear-gradient(135deg, var(--accent-hover), #d86f15);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(232, 124, 26, 0.3);
+}
+
+/* 모바일 반응형 */
+@media (max-width: 700px) {
+  .premium-calculator {
+    padding: 16px;
+    margin: 12px 0;
+  }
+
+  .calculator-title {
+    font-size: 20px;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .calculator-icon {
+    font-size: 24px;
+  }
+
+  .form-section {
+    padding: 16px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .section-title {
+    font-size: 15px;
+  }
+
+  .form-field input,
+  .form-field select {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .calculate-button {
+    padding: 14px 24px;
+    font-size: 15px;
+    min-width: 180px;
+  }
+
+  .calculation-result {
+    padding: 16px;
+  }
+
+  .premium-breakdown {
+    padding: 16px;
+  }
+
+  .premium-item.final {
+    margin: 16px -16px 0 -16px;
+    padding: 16px;
+  }
+
+  .premium-value.final {
+    font-size: 20px;
+  }
+
+  .result-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .action-btn {
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .premium-calculator {
+    padding: 12px;
+  }
+
+  .calculator-header {
+    margin-bottom: 16px;
+  }
+
+  .calculator-title {
+    font-size: 18px;
+  }
+
+  .form-section {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .form-field input,
+  .form-field select {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .calculate-button {
+    padding: 12px 20px;
+    font-size: 14px;
+    min-width: 160px;
+  }
+
+  .calculation-result {
+    padding: 12px;
+  }
+
+  .result-title {
+    font-size: 18px;
+  }
+
+  .premium-breakdown {
+    padding: 12px;
+  }
+
+  .premium-item.final {
+    margin: 12px -12px 0 -12px;
+    padding: 12px;
+  }
+
+  .premium-value {
+    font-size: 16px;
+  }
+
+  .premium-value.final {
+    font-size: 18px;
+  }
+
+  .applied-discounts {
+    padding: 12px;
+  }
+
+  .discount-item {
+    padding: 6px 10px;
+  }
+
+  .discount-text {
+    font-size: 12px;
+  }
+}
+
+/* 접근성 개선 */
+@media (prefers-reduced-motion: reduce) {
+  .premium-calculator,
+  .calculate-button,
+  .action-btn,
+  .calculation-result {
+    transition: none;
+    animation: none;
+  }
+
+  .calculate-button:hover,
+  .action-btn:hover {
+    transform: none;
+  }
+
+  .loading-spinner {
+    animation: none;
+  }
+}
+
+/* 고대비 모드 */
+@media (prefers-contrast: high) {
+  .premium-calculator {
+    border-width: 3px;
+  }
+
+  .form-field input,
+  .form-field select {
+    border-width: 2px;
+  }
+
+  .calculate-button,
+  .action-btn {
+    border-width: 2px;
+  }
+}
+
+/* 포커스 스타일 */
+.calculate-button:focus,
+.action-btn:focus {
+  outline: 3px solid var(--accent-bg);
+  outline-offset: 2px;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  outline: 2px solid var(--accent-bg);
+  outline-offset: 1px;
+}
+
+/* 폼 유효성 검증 스타일 */
+.form-field input:invalid,
+.form-field select:invalid {
+  border-color: #d32f2f;
+}
+
+.form-field input:valid,
+.form-field select:valid {
+  border-color: #4caf50;
+}
+
+/* 툴팁 스타일 */
+.form-field[data-tooltip]:hover:after {
+  content: attr(data-tooltip);
+  position: absolute;
+  background: var(--text-primary);
+  color: var(--surface-bg);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  margin-top: 4px;
+} 

@@ -1,0 +1,925 @@
+/* 보험금 청구 가이드 스타일 */
+.claim-guide {
+  background: var(--surface-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  margin: 16px 0;
+  box-shadow: 0 4px 16px var(--shadow-light);
+  transition: all 0.3s ease;
+}
+
+.claim-guide:hover {
+  box-shadow: 0 6px 20px var(--shadow-medium);
+  border-color: var(--accent-bg);
+}
+
+/* 가이드 헤더 */
+.guide-header {
+  text-align: center;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.guide-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.title-icon {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.guide-subtitle {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* 청구 유형 선택 */
+.claim-type-selection {
+  margin-bottom: 32px;
+}
+
+.selection-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selection-icon {
+  font-size: 20px;
+}
+
+.claim-types-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.claim-type-card {
+  background: var(--secondary-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.claim-type-card:hover {
+  background: var(--chat-user-bg);
+  border-color: var(--accent-bg);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px var(--shadow-light);
+}
+
+.card-icon {
+  font-size: 36px;
+  flex-shrink: 0;
+}
+
+.card-content {
+  flex: 1;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.urgency-badge {
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.time-limit {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* 청구 프로세스 */
+.claim-process {
+  margin-bottom: 32px;
+}
+
+.process-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.back-button {
+  background: var(--secondary-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-button:hover {
+  background: var(--surface-bg);
+  color: var(--text-primary);
+  border-color: var(--accent-bg);
+}
+
+.selected-type {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--accent-bg-light);
+  padding: 12px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--accent-bg);
+}
+
+.type-icon {
+  font-size: 24px;
+}
+
+.type-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.type-limit {
+  font-size: 12px;
+  color: var(--accent-bg);
+  font-weight: 600;
+  background: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* 단계 컨테이너 */
+.steps-container {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 24px;
+}
+
+/* 단계 네비게이션 */
+.steps-navigation {
+  background: var(--secondary-bg);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  height: fit-content;
+}
+
+.step-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 8px;
+}
+
+.step-nav-item:last-child {
+  margin-bottom: 0;
+}
+
+.step-nav-item:hover {
+  background: var(--chat-user-bg);
+}
+
+.step-nav-item.active {
+  background: var(--accent-bg);
+  color: var(--text-on-accent);
+}
+
+.step-nav-item.completed {
+  background: var(--surface-bg);
+  border: 2px solid #4caf50;
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--border-color);
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.step-nav-item.active .step-number {
+  background: white;
+  color: var(--accent-bg);
+}
+
+.step-nav-item.completed .step-number {
+  background: #4caf50;
+  color: white;
+}
+
+.step-nav-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.step-icon {
+  font-size: 16px;
+}
+
+.step-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: inherit;
+}
+
+/* 단계 내용 */
+.step-content {
+  background: var(--chat-user-bg);
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid var(--border-color);
+}
+
+.step-detail {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.step-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.step-detail .step-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.step-detail .step-icon {
+  font-size: 24px;
+}
+
+.urgent-badge {
+  background: #d32f2f;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.step-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* 단계 태스크 */
+.step-tasks {
+  margin-bottom: 24px;
+  background: var(--surface-bg);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+}
+
+.tasks-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tasks-icon {
+  font-size: 16px;
+}
+
+.tasks-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.task-item:last-child {
+  border-bottom: none;
+}
+
+.task-checkbox {
+  font-size: 16px;
+  color: var(--accent-bg);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.3s ease;
+}
+
+.task-checkbox:hover {
+  transform: scale(1.1);
+}
+
+.task-text {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+/* 단계 팁 */
+.step-tips {
+  margin-bottom: 24px;
+  background: var(--accent-bg-light);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--accent-bg);
+}
+
+.tips-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tips-icon {
+  font-size: 16px;
+}
+
+.tips-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tip-item {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin-bottom: 8px;
+  padding-left: 16px;
+  position: relative;
+}
+
+.tip-item:last-child {
+  margin-bottom: 0;
+}
+
+.tip-item:before {
+  content: "💡";
+  position: absolute;
+  left: 0;
+  font-size: 12px;
+}
+
+/* 단계 액션 버튼 */
+.step-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.step-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  max-width: 160px;
+}
+
+.step-button.prev {
+  background: var(--secondary-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.step-button.prev:hover {
+  background: var(--surface-bg);
+  border-color: var(--accent-bg);
+}
+
+.step-button.next {
+  background: linear-gradient(135deg, var(--accent-bg), var(--accent-hover));
+  color: var(--text-on-accent);
+  border: 1px solid var(--accent-hover);
+}
+
+.step-button.next:hover {
+  background: linear-gradient(135deg, var(--accent-hover), #d86f15);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(232, 124, 26, 0.3);
+}
+
+.step-button.complete {
+  background: linear-gradient(135deg, #4caf50, #66bb6a);
+  color: white;
+  border: 1px solid #4caf50;
+}
+
+.step-button.complete:hover {
+  background: linear-gradient(135deg, #388e3c, #4caf50);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+/* 긴급 연락처 */
+.emergency-contact {
+  background: linear-gradient(135deg, #ffebee, #ffcdd2);
+  border: 2px solid #f44336;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.contact-header {
+  margin-bottom: 16px;
+}
+
+.contact-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #d32f2f;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.contact-icon {
+  font-size: 18px;
+}
+
+.contact-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.contact-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contact-label {
+  font-size: 12px;
+  color: #d32f2f;
+  font-weight: 600;
+}
+
+.contact-number {
+  font-size: 18px;
+  font-weight: 700;
+  color: #d32f2f;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.contact-number:hover {
+  color: #b71c1c;
+  text-decoration: underline;
+}
+
+.contact-button {
+  background: #d32f2f;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: fit-content;
+}
+
+.contact-button:hover {
+  background: #b71c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3);
+}
+
+/* FAQ 섹션 */
+.faq-section {
+  background: var(--secondary-bg);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.faq-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.faq-icon {
+  font-size: 20px;
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.faq-item {
+  background: var(--surface-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.faq-question {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 16px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.faq-question:hover {
+  background: var(--chat-user-bg);
+}
+
+.faq-question.expanded {
+  background: var(--accent-bg-light);
+  color: var(--accent-bg);
+}
+
+.question-text {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.expand-icon {
+  font-size: 18px;
+  font-weight: 700;
+  transition: transform 0.3s ease;
+}
+
+.faq-question.expanded .expand-icon {
+  transform: rotate(180deg);
+}
+
+.faq-answer {
+  padding: 0 16px 16px 16px;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.faq-answer p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 900px) {
+  .claim-guide {
+    padding: 16px;
+  }
+
+  .guide-title {
+    font-size: 22px;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .title-icon {
+    font-size: 28px;
+  }
+
+  .claim-types-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .steps-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .steps-navigation {
+    display: flex;
+    overflow-x: auto;
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .step-nav-item {
+    flex-shrink: 0;
+    min-width: 120px;
+    margin-bottom: 0;
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+
+  .step-nav-content {
+    align-items: center;
+  }
+
+  .step-content {
+    padding: 16px;
+  }
+
+  .contact-info {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .claim-guide {
+    padding: 12px;
+    margin: 8px 0;
+  }
+
+  .guide-header {
+    margin-bottom: 24px;
+  }
+
+  .guide-title {
+    font-size: 20px;
+  }
+
+  .claim-type-card {
+    padding: 16px;
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .card-icon {
+    font-size: 32px;
+  }
+
+  .process-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .selected-type {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .step-detail .step-title {
+    font-size: 18px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .step-actions {
+    flex-direction: column;
+  }
+
+  .step-button {
+    max-width: none;
+  }
+
+  .emergency-contact {
+    padding: 16px;
+  }
+
+  .faq-section {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .claim-guide {
+    padding: 8px;
+  }
+
+  .guide-title {
+    font-size: 18px;
+  }
+
+  .guide-subtitle {
+    font-size: 14px;
+  }
+
+  .claim-type-card {
+    padding: 12px;
+  }
+
+  .card-title {
+    font-size: 15px;
+  }
+
+  .card-meta {
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .step-content {
+    padding: 12px;
+  }
+
+  .step-detail .step-title {
+    font-size: 16px;
+  }
+
+  .step-tasks,
+  .step-tips {
+    padding: 12px;
+  }
+
+  .task-text,
+  .tip-item {
+    font-size: 13px;
+  }
+
+  .emergency-contact {
+    padding: 12px;
+  }
+
+  .contact-number {
+    font-size: 16px;
+  }
+
+  .faq-section {
+    padding: 12px;
+  }
+
+  .faq-question {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .faq-answer {
+    padding: 0 12px 12px 12px;
+  }
+
+  .faq-answer p {
+    font-size: 12px;
+  }
+}
+
+/* 접근성 개선 */
+@media (prefers-reduced-motion: reduce) {
+  .claim-type-card,
+  .step-nav-item,
+  .step-button,
+  .contact-button,
+  .faq-question,
+  .step-detail {
+    transition: none;
+    animation: none;
+  }
+
+  .claim-type-card:hover,
+  .step-button:hover,
+  .contact-button:hover {
+    transform: none;
+  }
+
+  .expand-icon {
+    transition: none;
+  }
+}
+
+/* 고대비 모드 */
+@media (prefers-contrast: high) {
+  .claim-guide {
+    border-width: 3px;
+  }
+
+  .claim-type-card,
+  .step-nav-item,
+  .step-button {
+    border-width: 2px;
+  }
+
+  .emergency-contact {
+    border-width: 3px;
+  }
+}
+
+/* 포커스 스타일 */
+.claim-type-card:focus,
+.back-button:focus,
+.step-nav-item:focus,
+.step-button:focus,
+.contact-button:focus,
+.faq-question:focus {
+  outline: 2px solid var(--accent-bg);
+  outline-offset: 2px;
+}
+
+/* 스크롤바 스타일 */
+.steps-navigation::-webkit-scrollbar {
+  height: 6px;
+}
+
+.steps-navigation::-webkit-scrollbar-track {
+  background: var(--secondary-bg);
+  border-radius: 3px;
+}
+
+.steps-navigation::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.steps-navigation::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-bg);
+} 

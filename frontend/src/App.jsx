@@ -107,7 +107,10 @@ function App() {
     try {
       const res = await fetch(`${API_URL}/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
         body: JSON.stringify({ 
           message: userMsg, 
           model,
@@ -211,7 +214,12 @@ function App() {
     localStorage.removeItem(HISTORY_KEY);
     // 백엔드 감정 기록도 같이 초기화
     try {
-      await fetch(`${API_URL}/emotion-history-reset`, { method: 'POST' });
+      await fetch(`${API_URL}/emotion-history-reset`, { 
+        method: 'POST',
+        headers: {
+          'ngrok-skip-browser-warning': 'true'
+        }
+      });
     } catch (e) {
       // 네트워크 오류 등 무시
       console.warn('감정 기록 초기화 실패:', e);
@@ -352,7 +360,10 @@ function App() {
         // 1. 페르소나 설정 API 호출
         const res = await fetch(`${API_URL}/set-persona`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+          },
           body: JSON.stringify({
             session_id: sessionId,
             persona_id: persona.ID
@@ -365,7 +376,10 @@ function App() {
           // 2. 페르소나 기반 인사말 생성 및 채팅에 추가
           const greetingRes = await fetch(`${API_URL}/get-persona-greeting`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true'
+            },
             body: JSON.stringify({
               session_id: sessionId
             })

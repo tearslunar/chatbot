@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>오프라인 - 현대해상 AI 챗봇</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Noto Sans KR", Arial, sans-serif;
+        background: linear-gradient(135deg, #e0e0e0, #d5d7dc);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        color: #333;
+      }
+
+      .offline-container {
+        text-align: center;
+        padding: 40px 20px;
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+        max-width: 400px;
+        width: 90%;
+      }
+
+      .offline-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+        color: #e87c1a;
+      }
+
+      .offline-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 12px;
+        color: #e87c1a;
+      }
+
+      .offline-message {
+        font-size: 16px;
+        line-height: 1.5;
+        margin-bottom: 30px;
+        color: #666;
+      }
+
+      .retry-button {
+        background: #e87c1a;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .retry-button:hover {
+        background: #ffb300;
+      }
+
+      .offline-tips {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fb;
+        border-radius: 12px;
+        text-align: left;
+      }
+
+      .offline-tips h3 {
+        font-size: 16px;
+        margin-bottom: 10px;
+        color: #e87c1a;
+      }
+
+      .offline-tips ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .offline-tips li {
+        margin-bottom: 8px;
+        padding-left: 20px;
+        position: relative;
+        font-size: 14px;
+        color: #666;
+      }
+
+      .offline-tips li:before {
+        content: "•";
+        color: #e87c1a;
+        position: absolute;
+        left: 0;
+      }
+
+      @media (max-width: 480px) {
+        .offline-container {
+          padding: 30px 15px;
+        }
+
+        .offline-icon {
+          font-size: 48px;
+        }
+
+        .offline-title {
+          font-size: 20px;
+        }
+
+        .offline-message {
+          font-size: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="offline-container">
+      <div class="offline-icon">📱</div>
+      <h1 class="offline-title">오프라인 상태</h1>
+      <p class="offline-message">
+        현재 인터넷 연결이 불안정합니다.<br />
+        연결을 확인한 후 다시 시도해주세요.
+      </p>
+
+      <button class="retry-button" onclick="window.location.reload()">
+        다시 시도
+      </button>
+
+      <div class="offline-tips">
+        <h3>💡 연결 문제 해결 방법</h3>
+        <ul>
+          <li>Wi-Fi 또는 모바일 데이터 연결 확인</li>
+          <li>비행기 모드 해제 확인</li>
+          <li>네트워크 설정 재설정</li>
+          <li>앱 재시작 또는 브라우저 새로고침</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      // 온라인 상태 감지
+      window.addEventListener("online", () => {
+        console.log("온라인 상태로 변경됨");
+        // 자동으로 메인 페이지로 이동
+        window.location.href = "/";
+      });
+
+      // 주기적으로 연결 상태 확인
+      setInterval(() => {
+        if (navigator.onLine) {
+          window.location.href = "/";
+        }
+      }, 5000);
+    </script>
+  </body>
+</html>
