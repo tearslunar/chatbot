@@ -3,12 +3,23 @@ load_dotenv()
 import os
 import requests
 from typing import List, Dict
-from backend.app.utils.emotion_response import emotion_response
+from .emotion_response import emotion_response
+from .prompt_manager import get_prompt_manager, PromptConfig, PromptMode
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+# 프롬프트 매니저 초기화 (성능 및 길이 최적화)
+_prompt_config = PromptConfig(
+    mode=PromptMode.STANDARD,
+    max_length=6000,
+    max_history_turns=5,
+    max_rag_results=3,
+    rag_content_limit=300
+)
+
+# DEPRECATED - 새로운 시스템으로 교체됨
 PERSONA_PROMPT = """
-# 페르소나
+# 페르소나 (DEPRECATED)
 
 당신은 현대해상의 AI 상담 챗봇 **'햇살봇'**입니다. 당신의 핵심 역할은 보험이라는 낯선 길 위에서 고객이 느끼는 불안과 걱정의 그늘을 걷어내고, 따스한 햇살처럼 길을 밝혀주는 **'마음 비추는 안내자'**입니다.
 
@@ -188,6 +199,26 @@ def build_prompt_with_history(history, user_message, rag_results=None, emotion_d
     
     return prompt
 
+def build_optimized_prompt(user_message: str, history: List[Dict] = None, rag_results: List[Dict] = None, 
+                          emotion_data: Dict = None, persona_info: Dict = None, search_metadata: Dict = None) -> str:
+    """통합 최적화 프롬프트 생성 - 중복 제거, 동적 압축, 스마트 최적화"""
+    prompt_manager = get_prompt_manager(_prompt_config)
+    
+    optimized_prompt = prompt_manager.build_optimized_prompt(
+        user_message=user_message,
+        history=history,
+        rag_results=rag_results,
+        emotion_data=emotion_data,
+        persona_info=persona_info,
+        search_metadata=search_metadata
+    )
+    
+    # 프롬프트 통계 로깅
+    stats = prompt_manager.get_prompt_stats(optimized_prompt)
+    print(f"[최적화 프롬프트] 길이: {stats['total_length']}자, 압축률: {stats['compression_ratio']}%")
+    
+    return optimized_prompt
+
 def get_potensdot_answer(user_message: str, model_name: str = None, rag_results: List[Dict] = None, emotion_data: Dict = None, history: list = None, persona_info: Dict = None, search_metadata: Dict = None) -> str:
     api_key = os.environ.get("POTENSDOT_API_KEY")
     url = "https://ai.potens.ai/api/chat"
@@ -195,7 +226,8 @@ def get_potensdot_answer(user_message: str, model_name: str = None, rag_results:
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
-    prompt = build_prompt_with_history(history, user_message, rag_results, emotion_data, persona_info, search_metadata)
+    # 새로운 최적화 프롬프트 시스템 사용
+    prompt = build_optimized_prompt(user_message, history, rag_results, emotion_data, persona_info, search_metadata)
     
     # 프롬프트 크기 로깅
     prompt_length = len(prompt)
@@ -278,3 +310,39 @@ async def llm_answer_async(request: Request):
     search_metadata = data.get("search_metadata", None)
     answer = get_potensdot_answer(user_message, model_name, rag_results, emotion_data, history, persona_info, search_metadata)
     return JSONResponse(content={"answer": answer}) 
+
+# 하위 호환성을 위한 레거시 함수들 (deprecated)
+def build_rag_prompt(user_message: str, rag_results: List[Dict] = None) -> str:
+    """DEPRECATED: build_optimized_prompt 사용 권장"""
+    print("[DEPRECATED] build_rag_prompt는 곧 제거됩니다. build_optimized_prompt를 사용하세요.")
+    return build_optimized_prompt(user_message, rag_results=rag_results)
+
+def build_prompt_with_history(history, user_message, rag_results=None, emotion_data=None, persona_info=None, search_metadata=None):
+    """DEPRECATED: build_optimized_prompt 사용 권장"""
+    print("[DEPRECATED] build_prompt_with_history는 곧 제거됩니다. build_optimized_prompt를 사용하세요.")
+    return build_optimized_prompt(user_message, history, rag_results, emotion_data, persona_info, search_metadata)
+
+def select_relevant_history(history, current_message, max_turns=5):
+    """DEPRECATED: 새로운 프롬프트 매니저에서 자동 처리됩니다."""
+    print("[DEPRECATED] select_relevant_history는 새로운 프롬프트 매니저에서 자동 처리됩니다.")
+    # 기존 코드 유지 (하위 호환성)
+    if not history or len(history) <= 3:
+        return history
+    
+    recent = history[-2:]
+    import re
+    current_keywords = set(re.findall(r'\b\w+\b', current_message.lower()))
+    
+    relevant_history = []
+    for turn in history[:-2]:
+        content = turn.get('content', '').lower()
+        turn_keywords = set(re.findall(r'\b\w+\b', content))
+        
+        overlap = len(current_keywords & turn_keywords)
+        if overlap >= 2:
+            relevant_history.append((turn, overlap))
+    
+    relevant_history.sort(key=lambda x: x[1], reverse=True)
+    selected = [turn for turn, _ in relevant_history[:3]]
+    
+    return selected + recent 
