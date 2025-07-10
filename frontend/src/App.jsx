@@ -61,11 +61,20 @@ function App() {
   const [selectedTag, setSelectedTag] = useState(null);
   const [feedback, setFeedback] = useState('');
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  // 🌟 평점 시스템 상태 추가
+  const [rating, setRating] = useState(0);
+  const [hoveredRating, setHoveredRating] = useState(0);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [resolutionResult, setResolutionResult] = useState(null);
   const [fromSuggestion, setFromSuggestion] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState(null);
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+
+  // 🚨 3분 비활성 타이머 상태 추가
+  const [inactivityTimer, setInactivityTimer] = useState(null);
+  const [lastActivityTime, setLastActivityTime] = useState(Date.now());
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false);
+  const [remainingTime, setRemainingTime] = useState(180); // 3분 = 180초
 
   // 대화가 바뀔 때마다 localStorage에 저장
   useEffect(() => {
@@ -90,9 +99,71 @@ function App() {
     }
   }, [messages]);
 
+  // 🚨 3분 비활성 타이머 관리
+  useEffect(() => {
+    // 상담이 종료된 상태에서는 타이머 작동하지 않음
+    if (isSessionEnded) {
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+        setInactivityTimer(null);
+      }
+      setShowInactivityWarning(false);
+      return;
+    }
+
+    // 기존 타이머 정리
+    if (inactivityTimer) {
+      clearTimeout(inactivityTimer);
+    }
+
+    // 새로운 타이머 시작
+    const timer = setTimeout(() => {
+      // 2분 30초 후 경고 표시 (30초 전 경고)
+      setShowInactivityWarning(true);
+      
+      // 추가 30초 후 자동 종료
+      const finalTimer = setTimeout(() => {
+        console.log('[비활성 타이머] 3분 경과로 상담을 자동 종료합니다.');
+        handleInactivityTimeout();
+      }, 30000); // 30초 추가 대기
+      
+      setInactivityTimer(finalTimer);
+    }, 150000); // 2분 30초 (150초)
+
+    setInactivityTimer(timer);
+    setLastActivityTime(Date.now());
+
+    // 컴포넌트 언마운트 시 타이머 정리
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [lastActivityTime, isSessionEnded]);
+
+  // 경고 표시 중 남은 시간 카운트다운
+  useEffect(() => {
+    if (!showInactivityWarning) return;
+
+    const countdown = setInterval(() => {
+      setRemainingTime(prev => {
+        if (prev <= 1) {
+          clearInterval(countdown);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdown);
+  }, [showInactivityWarning]);
+
   // 메시지 전송 핸들러
   const handleSend = async () => {
     if (!input.trim() || !model) return;
+    
+    // 🚨 비활성 타이머 리셋
+    setLastActivityTime(Date.now());
+    setShowInactivityWarning(false);
+    setRemainingTime(180); // 3분으로 리셋
     
     // 상담이 종료된 상태에서 새 메시지를 보내면 자동으로 재시작
     if (isSessionEnded) {
@@ -129,6 +200,20 @@ function App() {
         emotion: data.emotion,
         escalation_needed: data.escalation_needed
       }]));
+      
+      // 🚨 자동 상담 종료 처리
+      if (data.session_ended) {
+        console.log('[자동 종료] 감정 강도 지속으로 상담이 자동 종료됩니다.');
+        setTimeout(() => {
+          setIsSessionEnded(true);
+          setCurrentEmotion(null);
+          // 종료 후 상담사 연결 안내 강조
+          setMessages(prev => [...prev, { 
+            role: 'bot', 
+            content: '⚠️ **상담이 자동으로 종료되었습니다.** 상담사 연결을 위해 고객센터(1588-5656)로 연락해주세요.' 
+          }]);
+        }, 2000); // 2초 후 종료 처리
+      }
     } catch (err) {
       setMessages(prev => ([...prev, { role: 'bot', content: '서버와의 통신에 문제가 발생했습니다.' }]));
     } finally {
@@ -182,10 +267,44 @@ function App() {
   };
 
   // 피드백 제출 핸들러
-  const handleFeedbackSubmit = () => {
+  const handleFeedbackSubmit = async () => {
     console.log('상담 종료 피드백:', feedback);
+    console.log('상담 평점:', rating);
+    
+    // 🌟 평점과 피드백을 백엔드에 전송
+    try {
+      const res = await fetch(`${API_URL}/submit-rating`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          rating: rating,
+          feedback: feedback,
+          timestamp: new Date().toISOString()
+        })
+      });
+      
+      if (res.ok) {
+        console.log('평점 제출 성공');
+        // 성공 메시지 표시 (선택적)
+        setMessages(prev => [...prev, { 
+          role: 'bot', 
+          content: '소중한 평가를 해주셔서 감사합니다! 더 나은 서비스로 보답하겠습니다. 😊' 
+        }]);
+      } else {
+        console.warn('평점 제출 실패:', res.status);
+      }
+    } catch (e) {
+      console.warn('평점 제출 API 호출 실패:', e);
+    }
+    
     setIsFeedbackModalOpen(false);
     setFeedback('');
+    setRating(0);
+    setHoveredRating(0);
   };
 
   //빠른메뉴
@@ -430,6 +549,29 @@ function App() {
     setSuggestedQuestions(matches);
   }, [input]);
 
+  // 비활성 타이머 종료 시 처리
+  const handleInactivityTimeout = () => {
+    console.log('[비활성 타이머] 3분 경과로 상담을 자동 종료합니다.');
+    setIsSessionEnded(true);
+    setCurrentEmotion(null);
+    setMessages(prev => [...prev, { 
+      role: 'bot', 
+      content: '⏰ **3분간 대화가 없어 상담이 자동으로 종료되었습니다.** 서비스 이용 후기를 남겨주시면 더 나은 서비스 제공에 도움이 됩니다.' 
+    }]);
+    // 타이머 정리
+    if (inactivityTimer) {
+      clearTimeout(inactivityTimer);
+      setInactivityTimer(null);
+    }
+    setShowInactivityWarning(false);
+    setRemainingTime(0);
+    
+    // 🌟 자동 종료 후 바로 평점 입력창 표시
+    setTimeout(() => {
+      setIsFeedbackModalOpen(true);
+    }, 1000); // 1초 후 피드백 모달 표시
+  };
+
   return (
     <div className="chat-container">
       <div className="chat-header-row">
@@ -570,18 +712,71 @@ function App() {
       {/* 피드백 입력 모달 */}
       {isFeedbackModalOpen && (
         <div className="modal-background">
-          <div className="modal-content" style={{ minWidth: 320, maxWidth: 400, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: 220 }}>
-            <div className="modal-text" style={{ color: '#d2691e', marginBottom: 16 }}>상담 피드백을 남겨주세요</div>
+          <div className="modal-content" style={{ minWidth: 380, maxWidth: 450, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: 280 }}>
+            <div className="modal-text" style={{ color: '#d2691e', marginBottom: 20, fontSize: '18px', fontWeight: 'bold' }}>상담은 어떠셨나요?</div>
+            
+            {/* 🌟 별점 입력 섹션 */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ textAlign: 'center', marginBottom: 12, fontSize: '14px', color: '#666' }}>서비스 만족도를 평가해주세요</div>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '36px',
+                      cursor: 'pointer',
+                      color: (hoveredRating >= star || rating >= star) ? '#ffc107' : '#e0e0e0',
+                      transition: 'color 0.2s ease',
+                      padding: '4px'
+                    }}
+                    onMouseEnter={() => setHoveredRating(star)}
+                    onMouseLeave={() => setHoveredRating(0)}
+                    onClick={() => setRating(star)}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+              {rating > 0 && (
+                <div style={{ textAlign: 'center', marginTop: '8px', fontSize: '14px', color: '#666' }}>
+                  {rating === 1 && '매우 불만족'}
+                  {rating === 2 && '불만족'}
+                  {rating === 3 && '보통'}
+                  {rating === 4 && '만족'}
+                  {rating === 5 && '매우 만족'}
+                </div>
+              )}
+            </div>
+
+            {/* 텍스트 피드백 입력 */}
             <textarea
               value={feedback}
               onChange={e => setFeedback(e.target.value)}
-              placeholder="상담에 대한 의견이나 개선점을 자유롭게 입력해 주세요."
+              placeholder="개선점이나 의견을 자유롭게 입력해 주세요 (선택사항)"
               rows={4}
-              style={{ width: '100%', minHeight: 80, marginBottom: 32, borderRadius: 8, border: '1px solid #ddd', padding: 12, fontSize: 15, background: '#fafafa', color: '#222', resize: 'none' }}
+              style={{ width: '100%', minHeight: 80, marginBottom: 24, borderRadius: 8, border: '1px solid #ddd', padding: 12, fontSize: 15, background: '#fafafa', color: '#222', resize: 'none' }}
             />
+            
             <div className="modal-buttons" style={{ justifyContent: 'center', width: '100%' }}>
-              <button className="modal-button yes" onClick={handleFeedbackSubmit}>네</button>
-              <button className="modal-button no" onClick={() => { setIsFeedbackModalOpen(false); setFeedback(''); }}>아니요</button>
+              <button 
+                className="modal-button yes" 
+                onClick={handleFeedbackSubmit}
+                disabled={rating === 0}
+                style={{ 
+                  opacity: rating === 0 ? 0.5 : 1,
+                  cursor: rating === 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                제출하기
+              </button>
+              <button className="modal-button no" onClick={() => { 
+                setIsFeedbackModalOpen(false); 
+                setFeedback(''); 
+                setRating(0);
+                setHoveredRating(0);
+              }}>건너뛰기</button>
             </div>
           </div>
         </div>
@@ -590,6 +785,43 @@ function App() {
       {resolutionResult && (
         <div style={{ background: resolutionResult.resolved ? '#e3fcec' : '#ffeaea', color: '#333', padding: '8px', borderRadius: '8px', margin: '12px 0', textAlign: 'center' }}>
           {resolutionResult.resolved ? '상담 종료 시점에 고객 감정이 해소된 것으로 분석되었습니다.' : '상담 종료 시점에도 고객 감정이 해소되지 않은 것으로 분석되었습니다.'}
+        </div>
+      )}
+
+      {/* 🚨 비활성 경고 모달 */}
+      {showInactivityWarning && (
+        <div className="modal-background">
+          <div className="modal-content" style={{ minWidth: 320, maxWidth: 400, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: 200, background: '#fff3cd', border: '2px solid #ffc107' }}>
+            <div style={{ fontSize: '48px', marginBottom: 16 }}>⏰</div>
+            <div className="modal-text" style={{ color: '#856404', marginBottom: 16, textAlign: 'center', fontWeight: 'bold' }}>
+              비활성 상태 감지
+            </div>
+            <div style={{ color: '#856404', marginBottom: 20, textAlign: 'center', lineHeight: 1.5 }}>
+              {remainingTime}초 후 상담이 자동으로 종료됩니다.<br/>
+              메시지를 입력하시면 상담이 계속됩니다.
+            </div>
+            <div className="modal-buttons" style={{ justifyContent: 'center', width: '100%' }}>
+              <button 
+                className="modal-button yes" 
+                onClick={() => {
+                  setLastActivityTime(Date.now());
+                  setShowInactivityWarning(false);
+                  setRemainingTime(180);
+                }}
+                style={{ background: '#ffc107', border: 'none', color: '#000' }}
+              >
+                상담 계속하기
+              </button>
+              <button 
+                className="modal-button no" 
+                onClick={() => {
+                  handleInactivityTimeout();
+                }}
+              >
+                상담 종료
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

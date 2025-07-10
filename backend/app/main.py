@@ -2,9 +2,11 @@ from dotenv import load_dotenv
 load_dotenv()
 from fastapi import FastAPI, Request, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 import os
-from fastapi.responses import JSONResponse
 from backend.app.sentiment.advanced import emotion_analyzer, emotion_router
 from backend.app.utils.chat import get_potensdot_answer, extract_insurance_entities, llm_router
 from backend.app.utils.emotion_response import emotion_response
@@ -15,9 +17,45 @@ import httpx
 import time
 import random
 from backend.app.utils.persona_utils import persona_manager
+from backend.app.utils.security import (
+    security_handler, 
+    audit_logger, 
+    data_validator,
+    audit_personal_data_access
+)
 from typing import Dict
 
+# 🔐 보안 헤더 미들웨어
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # 보안 헤더 추가
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        
+        # HTTPS 강제 (프로덕션 환경에서)
+        if os.environ.get("ENVIRONMENT") == "production":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+            response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+        
+        return response
+
 app = FastAPI()
+
+# 🔐 보안 미들웨어 추가
+app.add_middleware(SecurityHeadersMiddleware)
+
+# 신뢰할 수 있는 호스트만 허용 (프로덕션)
+if os.environ.get("ENVIRONMENT") == "production":
+    app.add_middleware(
+        TrustedHostMiddleware, 
+        allowed_hosts=["hyundai-insurance.com", "*.hyundai-insurance.com"]
+    )
+
 app.include_router(emotion_router)
 app.include_router(llm_router)
 
@@ -64,6 +102,27 @@ def set_persona(request: PersonaSetRequest):
 
 class PersonaGreetingRequest(BaseModel):
     session_id: str
+
+# 🌟 평점 제출 요청 모델 추가
+class RatingSubmitRequest(BaseModel):
+    session_id: str
+    rating: int
+    feedback: str = ""
+    timestamp: str
+
+# 🔐 보험 가입 신청 보안 모델 추가
+class SecureInsuranceApplicationRequest(BaseModel):
+    session_id: str
+    form_data: dict
+    persona: dict = None
+    consent_agreements: dict
+    security_metadata: dict = None
+
+class PersonalDataValidationResponse(BaseModel):
+    is_valid: bool
+    errors: dict = {}
+    warnings: list = []
+    sanitized_data: dict = {}
 
 @app.post("/get-persona-greeting")
 def get_persona_greeting(request: PersonaGreetingRequest):
@@ -165,6 +224,10 @@ class ChatResponse(BaseModel):
     emotion: dict = None
     escalation_needed: bool = False
     recommended_faqs: list = None
+    conversation_flow: dict = None  # 대화 흐름 정보 추가
+    search_strategy: str = None  # 검색 전략 정보 추가
+    processing_time: float = None  # 처리 시간 정보 추가
+    session_ended: bool = False  # 🚨 자동 상담 종료 여부 추가
 
 @app.get("/")
 def read_root():
@@ -229,25 +292,27 @@ async def chat_endpoint(req: ChatRequest):
             print("emotion_data:", emotion_data)
             emotion_trend = emotion_analyzer.get_emotion_trend()
             print("emotion_trend:", emotion_trend)
-            # LLM 호출 비동기
+            # LLM 호출 비동기 (수정된 부분)
             t_llm_start = time.time()
-            # 프롬프트 경량화: 대화 흐름 인식 검색 결과, 감정 정보는 emotion/intensity만, history는 최근 2개만 전달
+            print(f"[최적화] 프롬프트 최적화 적용됨")
+
             llm_task = client.post(
                 f"{INTERNAL_API_BASE}/llm-answer-async",
                 json={
                     "user_message": user_msg,
                     "model_name": model_name,
-                    "rag_results": rag_results,  # 대화 흐름 인식 검색 결과 전달
-                    "search_metadata": search_metadata,  # 검색 메타데이터 추가
+                    "rag_results": rag_results,
+                    "search_metadata": search_metadata,
                     "emotion_data": {
                         "emotion": emotion_data.get("emotion"),
                         "intensity": emotion_data.get("intensity")
                     },
-                    "history": history[-2:] if history else [],
+                    "history": history[-2:] if history else [],  # 최근 2개만
                     "persona_info": persona_info
                 }
             )
-            print("llm_task 생성")
+
+            print("llm_task 생성 (최적화됨)")
             llm_resp = await llm_task
             print(f"[속도] LLM 답변 생성: {time.time() - t_llm_start:.2f}초")
             print("llm_resp status:", llm_resp.status_code)
@@ -258,6 +323,18 @@ async def chat_endpoint(req: ChatRequest):
         enhanced_answer = emotion_response.get_emotion_enhanced_response(base_answer, emotion_data)
         print(f"[속도] 감정 기반 응답 강화: {time.time() - t_enhance_start:.2f}초")
         print("enhanced_answer:", enhanced_answer)
+        
+        # 🚨 감정 강도 지속 모니터링 및 자동 상담 종료 체크
+        should_terminate = emotion_analyzer.should_terminate_session()
+        termination_message = ""
+        session_ended = False
+        
+        if should_terminate:
+            termination_message = emotion_analyzer.get_termination_message()
+            enhanced_answer += termination_message
+            session_ended = True
+            print(f"[자동 종료] 감정 강도 지속으로 상담 종료 트리거됨")
+        
         # 상담사 연결 제안 추가
         escalation_suggestion = emotion_response.get_escalation_suggestion(emotion_data, emotion_trend)
         if escalation_suggestion:
@@ -304,11 +381,15 @@ async def chat_endpoint(req: ChatRequest):
         print(f"[속도] 전체 처리 시간: {time.time() - total_start:.2f}초")
         print("==== POST /chat 응답 완료 ====")
         return ChatResponse(
-            answer=enhanced_answer, 
-            entities=entities, 
-            emotion=emotion_data,  # 사용자 메시지에 대한 감정만 반환
+            answer=enhanced_answer,
+            recommended_faqs=recommended_faqs[:3],
+            emotion=emotion_data,
             escalation_needed=escalation_needed,
-            recommended_faqs=recommended_faqs
+            entities=entities,
+            conversation_flow=search_metadata.get('conversation_flow', {}),
+            search_strategy=search_metadata.get('search_strategy', ''),
+            processing_time=round(time.time() - total_start, 2),
+            session_ended=session_ended  # 🚨 자동 종료 정보 추가
         )
     except Exception as e:
         print("!!! /chat 처리 중 예외 발생:", e)
@@ -337,7 +418,212 @@ def end_session():
 
 @app.get("/persona-list")
 def persona_list(keyword: str = Query(None, description="검색 키워드"), limit: int = 100):
-    """고객 페르소나 목록/검색 API"""
-    return persona_manager.list_personas(keyword=keyword, limit=limit)
+    """페르소나 목록 조회 API (키워드 검색 지원)"""
+    return persona_manager.search_personas(keyword, limit)
 
+# 🌟 평점 제출 엔드포인트 추가
+@app.post("/submit-rating")
+def submit_rating(request: RatingSubmitRequest):
+    """상담 종료 후 평점 및 피드백 제출 API"""
+    try:
+        # 평점 유효성 검증
+        if not (1 <= request.rating <= 5):
+            return {"success": False, "error": "평점은 1-5 사이의 값이어야 합니다."}
+        
+        # 평점 데이터 저장 (현재는 로그로만 기록, 실제 서비스에서는 DB 저장)
+        rating_data = {
+            "session_id": request.session_id,
+            "rating": request.rating,
+            "feedback": request.feedback.strip(),
+            "timestamp": request.timestamp,
+            "submitted_at": time.time()
+        }
+        
+        print(f"[평점 제출] {rating_data}")
+        
+        # TODO: 실제 서비스에서는 데이터베이스에 저장
+        # 예: save_rating_to_db(rating_data)
+        
+        return {
+            "success": True,
+            "message": "평점이 성공적으로 제출되었습니다.",
+            "rating": request.rating
+        }
+        
+    except Exception as e:
+        print(f"평점 제출 중 오류 발생: {e}")
+        return {
+            "success": False,
+            "error": "평점 제출 중 오류가 발생했습니다."
+        }
+
+# 🔐 개인정보 유효성 검증 API
+@app.post("/validate-personal-data", response_model=PersonalDataValidationResponse)
+@audit_personal_data_access("validate", "personal_info")
+def validate_personal_data(request: dict, session_id: str = "unknown"):
+    """개인정보 유효성 검증 및 보안 처리"""
+    try:
+        errors = {}
+        warnings = []
+        sanitized_data = {}
+        
+        # 필수 필드 검증
+        if 'name' in request:
+            if not data_validator.validate_korean_name(request['name']):
+                errors['name'] = "올바른 이름 형식이 아닙니다. (한글 또는 영문 2-10자)"
+            else:
+                sanitized_data['name'] = request['name'].strip()
+        
+        if 'phone' in request:
+            if not data_validator.validate_phone_number(request['phone']):
+                errors['phone'] = "올바른 휴대폰 번호 형식이 아닙니다. (010-1234-5678)"
+            else:
+                sanitized_data['phone'] = request['phone'].strip()
+        
+        if 'email' in request:
+            if not data_validator.validate_email(request['email']):
+                errors['email'] = "올바른 이메일 형식이 아닙니다."
+            else:
+                sanitized_data['email'] = request['email'].strip().lower()
+        
+        if 'cardNumber' in request:
+            if not data_validator.validate_card_number(request['cardNumber']):
+                errors['cardNumber'] = "올바른 카드번호가 아닙니다. (Luhn 알고리즘 검증 실패)"
+            else:
+                sanitized_data['cardNumber'] = ''.join(filter(str.isdigit, request['cardNumber']))
+        
+        # 보안 경고 검사
+        if 'cvv' in request and len(request['cvv']) < 3:
+            warnings.append("CVV 번호가 너무 짧습니다.")
+        
+        is_valid = len(errors) == 0
+        
+        # 감사 로그
+        audit_logger.log_personal_data_access(
+            action="validation",
+            data_type="mixed",
+            session_id=session_id,
+            metadata={
+                "field_count": len(request),
+                "errors_count": len(errors),
+                "warnings_count": len(warnings)
+            }
+        )
+        
+        return PersonalDataValidationResponse(
+            is_valid=is_valid,
+            errors=errors,
+            warnings=warnings,
+            sanitized_data=sanitized_data
+        )
+        
+    except Exception as e:
+        audit_logger.log_security_event(
+            event_type="VALIDATION_ERROR",
+            severity="MEDIUM",
+            description=f"개인정보 검증 중 오류: {str(e)}"
+        )
+        return PersonalDataValidationResponse(
+            is_valid=False,
+            errors={"system": "시스템 오류가 발생했습니다."}
+        )
+
+# 🔐 보안 강화된 보험 가입 신청 API
+@app.post("/submit-secure-insurance-application")
+@audit_personal_data_access("submit", "insurance_application")
+def submit_secure_insurance_application(request: SecureInsuranceApplicationRequest):
+    """보안 처리된 보험 가입 신청"""
+    try:
+        session_id = request.session_id
+        form_data = request.form_data
+        
+        # 1. 필수 동의 확인
+        agreements = request.consent_agreements
+        if not (agreements.get('terms') and agreements.get('privacy')):
+            return {"success": False, "error": "필수 약관에 동의해야 합니다."}
+        
+        # 2. 개인정보 암호화 처리
+        encrypted_data = {}
+        sensitive_fields = ['name', 'phone', 'email', 'address', 'cardNumber', 'cvv', 'bankAccount']
+        
+        for field in sensitive_fields:
+            if field in form_data and form_data[field]:
+                # 암호화 저장
+                encrypted_data[field] = security_handler.encrypt_personal_data(form_data[field])
+                # 해시 생성 (검색용)
+                encrypted_data[f"{field}_hash"] = security_handler.hash_sensitive_data(form_data[field])
+        
+        # 3. 비민감 정보는 평문 저장
+        non_sensitive_data = {
+            key: value for key, value in form_data.items() 
+            if key not in sensitive_fields
+        }
+        
+        # 4. 보험 가입 신청 데이터 구성
+        application_data = {
+            "session_id": session_id,
+            "application_id": f"INS_{int(time.time())}_{session_id[-8:]}",
+            "encrypted_personal_data": encrypted_data,
+            "non_sensitive_data": non_sensitive_data,
+            "consent_agreements": agreements,
+            "persona_info": request.persona,
+            "submission_timestamp": time.time(),
+            "security_metadata": {
+                "encryption_version": "AES-256-CBC",
+                "validation_passed": True,
+                "ip_address": request.security_metadata.get('ip_address', 'unknown') if request.security_metadata else 'unknown'
+            }
+        }
+        
+        # 5. 보안 감사 로그
+        audit_logger.log_data_processing(
+            process_type="insurance_application_submission",
+            data_count=len(sensitive_fields),
+            session_id=session_id,
+            success=True
+        )
+        
+        # 6. 개인정보 접근 로그 (상세)
+        for field in encrypted_data.keys():
+            if not field.endswith('_hash'):
+                audit_logger.log_personal_data_access(
+                    action="encrypt_and_store",
+                    data_type=field,
+                    session_id=session_id,
+                    metadata={"application_id": application_data["application_id"]}
+                )
+        
+        # 7. 임시 저장 (실제 서비스에서는 보안 데이터베이스에 저장)
+        print(f"[보안 보험 가입 신청] 성공: {application_data['application_id']}")
+        print(f"[보안 로그] 암호화된 필드 수: {len([k for k in encrypted_data.keys() if not k.endswith('_hash')])}")
+        
+        # 8. 마스킹된 확인 데이터 반환
+        masked_confirmation = {}
+        for field in ['name', 'phone', 'email']:
+            if field in form_data:
+                masked_confirmation[field] = security_handler.mask_personal_data(form_data[field], field)
+        
+        return {
+            "success": True,
+            "message": "보험 가입 신청이 안전하게 처리되었습니다.",
+            "application_id": application_data["application_id"],
+            "confirmation_data": masked_confirmation,
+            "security_notice": "개인정보는 256bit AES 암호화로 안전하게 보호됩니다."
+        }
+        
+    except Exception as e:
+        # 오류 로그
+        audit_logger.log_security_event(
+            event_type="APPLICATION_SUBMISSION_ERROR",
+            severity="HIGH",
+            description=f"보험 가입 신청 처리 중 오류: {str(e)}",
+            metadata={"session_id": request.session_id}
+        )
+        
+        return {
+            "success": False,
+            "error": "보험 가입 신청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+        }
+
+# AWS Lambda를 위한 핸들러
 handler = Mangum(app)
