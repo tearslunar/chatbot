@@ -1,0 +1,224 @@
+name: 🚀 Hi-Care AI 챗봇 CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  # 🔍 코드 품질 검사
+  quality-check:
+    name: 📊 코드 품질 검사
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 코드 체크아웃
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Python 설정
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: 📦 의존성 캐시
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements*.txt') }}
+          
+      - name: 📦 Python 의존성 설치
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          
+      - name: 🎨 코드 포맷팅 검사 (Black)
+        working-directory: backend
+        run: black --check --diff app/ tests/
+        
+      - name: 📦 Import 정렬 검사 (isort)
+        working-directory: backend
+        run: isort --check-only --diff app/ tests/
+        
+      - name: 🔍 린팅 검사 (flake8)
+        working-directory: backend
+        run: flake8 app/ tests/
+        
+      - name: 🔤 타입 검사 (mypy)
+        working-directory: backend
+        run: mypy app/
+        
+      - name: 🚀 빠른 린팅 (Ruff)
+        working-directory: backend
+        run: ruff check app/ tests/
+
+  # 🔒 보안 검사
+  security-check:
+    name: 🛡️ 보안 검사
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 코드 체크아웃
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Python 설정
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: 📦 보안 도구 설치
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-security.txt
+          
+      - name: 🔒 보안 검사 (Bandit)
+        working-directory: backend
+        run: bandit -r app/ -f json -o bandit-report.json
+        
+      - name: 🛡️ 취약점 스캐닝 (Safety)
+        working-directory: backend
+        run: safety check
+        
+      - name: 🔍 시크릿 스캐닝 (detect-secrets)
+        working-directory: backend
+        run: |
+          detect-secrets scan --all-files --baseline .secrets.baseline || true
+          
+      - name: 📊 보안 리포트 업로드
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: backend/bandit-report.json
+
+  # 🧪 백엔드 테스트
+  backend-test:
+    name: 🔬 백엔드 테스트
+    runs-on: ubuntu-latest
+    needs: [quality-check]
+    
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+        
+    steps:
+      - name: 📥 코드 체크아웃
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Python ${{ matrix.python-version }} 설정
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          
+      - name: 📦 의존성 설치
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          
+      - name: 🧪 단위 테스트 실행
+        working-directory: backend
+        env:
+          ENVIRONMENT: test
+        run: pytest tests/unit/ -v --tb=short
+        
+      - name: 🔗 통합 테스트 실행
+        working-directory: backend
+        env:
+          ENVIRONMENT: test
+        run: pytest tests/integration/ -v --tb=short
+        
+      - name: 📊 커버리지 테스트
+        working-directory: backend
+        env:
+          ENVIRONMENT: test
+        run: |
+          pytest tests/ --cov=app --cov-report=xml --cov-report=html
+          
+      - name: 📈 코드 커버리지 업로드
+        uses: codecov/codecov-action@v3
+        with:
+          file: backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+          
+      - name: 📊 커버리지 리포트 업로드
+        if: matrix.python-version == '3.11'
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: backend/htmlcov/
+
+  # 🌐 프론트엔드 테스트
+  frontend-test:
+    name: 🎨 프론트엔드 테스트
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 코드 체크아웃
+        uses: actions/checkout@v4
+        
+      - name: 🟢 Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+          
+      - name: 📦 의존성 설치
+        working-directory: frontend
+        run: npm ci
+        
+      - name: 🔍 ESLint 검사
+        working-directory: frontend
+        run: npm run lint
+        
+      - name: 🎨 Prettier 검사
+        working-directory: frontend
+        run: npm run format:check
+        
+      - name: 🧪 단위 테스트
+        working-directory: frontend
+        run: npm run test:unit
+        
+      - name: 🏗️ 빌드 테스트
+        working-directory: frontend
+        run: npm run build
+
+  # 🐳 Docker 빌드 테스트
+  docker-test:
+    name: 🐳 Docker 빌드
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+    
+    steps:
+      - name: 📥 코드 체크아웃
+        uses: actions/checkout@v4
+        
+      - name: 🐳 Docker Buildx 설정
+        uses: docker/setup-buildx-action@v3
+        
+      - name: 🏗️ 백엔드 Docker 이미지 빌드
+        uses: docker/build-push-action@v5
+        with:
+          context: backend
+          push: false
+          tags: hi-care-backend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+      - name: 🏗️ 프론트엔드 Docker 이미지 빌드
+        uses: docker/build-push-action@v5
+        with:
+          context: frontend
+          push: false
+          tags: hi-care-frontend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max 

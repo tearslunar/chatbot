@@ -1,0 +1,170 @@
+name: 🚀 Hi-Care AI 챗봇 배포
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '배포 환경'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # 🏗️ 빌드 및 푸시
+  build-and-push:
+    name: 🏗️ 이미지 빌드 및 푸시
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    
+    permissions:
+      contents: read
+      packages: write
+      
+    outputs:
+      backend-image: ${{ steps.meta-backend.outputs.tags }}
+      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
+      
+    steps:
+      - name: 📥 코드 체크아웃
+        uses: actions/checkout@v4
+        
+      - name: 🐳 Docker Buildx 설정
+        uses: docker/setup-buildx-action@v3
+        
+      - name: 🔐 Container Registry 로그인
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: 📊 백엔드 메타데이터 추출
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            
+      - name: 📊 프론트엔드 메타데이터 추출
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            
+      - name: 🏗️ 백엔드 이미지 빌드 및 푸시
+        uses: docker/build-push-action@v5
+        with:
+          context: backend
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+      - name: 🏗️ 프론트엔드 이미지 빌드 및 푸시
+        uses: docker/build-push-action@v5
+        with:
+          context: frontend
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 🎯 스테이징 배포
+  deploy-staging:
+    name: 🎭 스테이징 배포
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    environment: staging
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
+    
+    steps:
+      - name: 📥 코드 체크아웃
+        uses: actions/checkout@v4
+        
+      - name: 🎭 스테이징 환경 배포
+        run: |
+          echo "🎭 스테이징 환경에 배포 중..."
+          echo "Backend Image: ${{ needs.build-and-push.outputs.backend-image }}"
+          echo "Frontend Image: ${{ needs.build-and-push.outputs.frontend-image }}"
+          # 실제 배포 명령어 추가 (예: kubectl, helm, docker-compose 등)
+          
+      - name: 🏥 헬스체크
+        run: |
+          echo "🏥 스테이징 환경 헬스체크 실행 중..."
+          # 실제 헬스체크 명령어 추가
+          
+      - name: 🧪 스모크 테스트
+        run: |
+          echo "🧪 스테이징 환경 스모크 테스트 실행 중..."
+          # 실제 스모크 테스트 명령어 추가
+
+  # 🚀 프로덕션 배포
+  deploy-production:
+    name: 🚀 프로덕션 배포
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy-staging]
+    environment: production
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.environment == 'production'
+    
+    steps:
+      - name: 📥 코드 체크아웃
+        uses: actions/checkout@v4
+        
+      - name: 🚀 프로덕션 환경 배포
+        run: |
+          echo "🚀 프로덕션 환경에 배포 중..."
+          echo "Backend Image: ${{ needs.build-and-push.outputs.backend-image }}"
+          echo "Frontend Image: ${{ needs.build-and-push.outputs.frontend-image }}"
+          # 실제 배포 명령어 추가
+          
+      - name: 🏥 프로덕션 헬스체크
+        run: |
+          echo "🏥 프로덕션 환경 헬스체크 실행 중..."
+          # 실제 헬스체크 명령어 추가
+          
+      - name: 📢 배포 알림
+        run: |
+          echo "📢 프로덕션 배포 완료 알림 전송 중..."
+          # 실제 알림 명령어 추가 (Slack, Teams, 이메일 등)
+
+  # 🔄 롤백
+  rollback:
+    name: 🔄 롤백
+    runs-on: ubuntu-latest
+    if: failure() && (startsWith(github.ref, 'refs/tags/v') || github.event.inputs.environment == 'production')
+    needs: [deploy-production]
+    environment: production
+    
+    steps:
+      - name: 🔄 자동 롤백 실행
+        run: |
+          echo "🔄 프로덕션 환경 자동 롤백 실행 중..."
+          # 실제 롤백 명령어 추가
+          
+      - name: 🚨 롤백 알림
+        run: |
+          echo "🚨 프로덕션 롤백 알림 전송 중..."
+          # 실제 알림 명령어 추가 

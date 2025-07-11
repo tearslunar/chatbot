@@ -1,0 +1,45 @@
+# 🚀 프로덕션 환경 전용 의존성
+
+# WSGI/ASGI 서버
+gunicorn==21.2.0
+uvloop==0.19.0  # 고성능 이벤트 루프
+
+# 모니터링 및 메트릭스
+prometheus-client==0.19.0
+prometheus-fastapi-instrumentator==6.1.0
+opencensus-ext-azure==1.1.13  # Azure 모니터링
+datadog==0.48.0  # DataDog 모니터링
+
+# 에러 추적 및 로깅
+sentry-sdk[fastapi]==1.39.2
+loguru==0.7.2  # 고급 로깅
+python-json-logger==2.0.7
+
+# 보안 및 레이트 리미팅
+slowapi==0.1.9  # 레이트 리미팅
+python-keycloak==3.7.0  # 인증 서버
+jwcrypto==1.5.0  # JWT 처리
+
+# 캐싱 및 세션 관리
+redis==5.0.1
+aiocache[redis]==0.12.2
+
+# 백그라운드 작업
+celery[redis]==5.3.4
+dramatiq[redis]==1.14.2
+
+# 데이터베이스 연결 풀링
+sqlalchemy[asyncio]==2.0.23
+asyncpg==0.29.0  # PostgreSQL 비동기 드라이버
+aiomysql==0.2.0  # MySQL 비동기 드라이버
+
+# 성능 최적화
+orjson==3.9.10  # 빠른 JSON 처리
+ujson==5.8.0     # 대안 JSON 처리
+
+# 네트워킹 및 프록시
+aioredis==2.0.1
+httpx[http2]==0.25.2  # HTTP/2 지원
+
+# 헬스체크 및 상태 모니터링
+psutil==5.9.6  # 시스템 리소스 모니터링 
