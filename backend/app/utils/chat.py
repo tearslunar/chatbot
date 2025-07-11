@@ -3,12 +3,23 @@ load_dotenv()
 import os
 import requests
 from typing import List, Dict
-from backend.app.utils.emotion_response import emotion_response
+from .emotion_response import emotion_response
+from .prompt_manager import get_prompt_manager, PromptConfig, PromptMode
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+# 프롬프트 매니저 초기화 (성능 및 길이 최적화)
+_prompt_config = PromptConfig(
+    mode=PromptMode.STANDARD,
+    max_length=6000,
+    max_history_turns=5,
+    max_rag_results=3,
+    rag_content_limit=300
+)
+
+# DEPRECATED - 새로운 시스템으로 교체됨
 PERSONA_PROMPT = """
-# 페르소나
+# 페르소나 (DEPRECATED)
 
 당신은 현대해상의 AI 상담 챗봇 **'햇살봇'**입니다. 당신의 핵심 역할은 보험이라는 낯선 길 위에서 고객이 느끼는 불안과 걱정의 그늘을 걷어내고, 따스한 햇살처럼 길을 밝혀주는 **'마음 비추는 안내자'**입니다.
 
@@ -488,6 +499,7 @@ def get_potensdot_answer_with_fallback(user_message: str, model_name: str = None
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
+
     
     # 1차 시도: 경량화된 프롬프트
     prompt = build_lightweight_prompt_with_history(history, user_message, rag_results, emotion_data, persona_info, search_metadata)
@@ -638,4 +650,4 @@ async def llm_answer_async(request: Request):
     persona_info = data.get("persona_info", None)
     search_metadata = data.get("search_metadata", None)
     answer = get_potensdot_answer_with_fallback(user_message, model_name, rag_results, emotion_data, history, persona_info, search_metadata)
-    return JSONResponse(content={"answer": answer}) 
+    return JSONResponse(content={"answer": answer})
