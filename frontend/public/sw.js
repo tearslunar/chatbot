@@ -73,7 +73,7 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const { request } = event;
-  const url = new URL(request.url);
+  // const url = new URL(request.url); // 미사용 변수 주석 처리
   
   // EXCLUDE_PATTERNS에 해당하는 요청은 캐시하지 않음
   if (EXCLUDE_PATTERNS.some(pattern => pattern.test(request.url))) {

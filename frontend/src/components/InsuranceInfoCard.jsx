@@ -3,7 +3,7 @@ import './InsuranceInfoCard.css';
 
 const InsuranceInfoCard = ({ 
   product, 
-  showComparison = false, 
+  // showComparison = false, // 미사용 prop 주석 처리
   onCalculatePremium = null,
   onViewDetails = null,
   onSubscribe = null 

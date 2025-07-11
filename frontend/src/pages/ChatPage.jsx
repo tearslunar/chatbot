@@ -16,7 +16,7 @@ import SessionManager from '../components/SessionManager';
 import FeedbackModal from '../components/FeedbackModal';
 import QuickMenu from '../components/QuickMenu';
 
-import faqData from '../assets/hi_faq.json';
+// import faqData from '../assets/hi_faq.json'; // 미사용 import 주석 처리
 
 // 설정 상수
 const API_URL = import.meta.env.VITE_API_URL;
@@ -60,12 +60,12 @@ function ChatPage() {
 
   // 감정 및 FAQ 상태
   const [currentEmotion, setCurrentEmotion] = useState(null);
-  const [emotionHistory, setEmotionHistory] = useState([]);
+  // const [emotionHistory, setEmotionHistory] = useState([]); // 미사용 state 주석 처리
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
 
   // 세션 관리 상태
   const [isSessionEnded, setIsSessionEnded] = useState(false);
-  const [resolutionResult, setResolutionResult] = useState(null);
+  // const [resolutionResult, setResolutionResult] = useState(null); // 미사용 state 주석 처리
 
   // Refs
   const messagesEndRef = useRef(null);
@@ -85,7 +85,7 @@ function ChatPage() {
     const emotions = messages
       .filter(msg => msg.emotion)
       .map(msg => msg.emotion);
-    setEmotionHistory(emotions);
+    // setEmotionHistory(emotions); // 미사용 setter 주석 처리
     
     if (emotions.length > 0) {
       setCurrentEmotion(emotions[emotions.length - 1]);
@@ -101,7 +101,7 @@ function ChatPage() {
     // 상담이 종료된 상태에서 새 메시지를 보내면 자동으로 재시작
     if (isSessionEnded) {
       setIsSessionEnded(false);
-      setResolutionResult(null);
+      // setResolutionResult(null); // 미사용 setter 주석 처리
     }
     
     const userMsg = input;
@@ -223,7 +223,7 @@ function ChatPage() {
    */
   const handleRestartSession = () => {
     setIsSessionEnded(false);
-    setResolutionResult(null);
+    // setResolutionResult(null); // 미사용 setter 주석 처리
     setIsFeedbackModalOpen(false);
     setMessages(prev => [...prev, { 
       role: 'bot', 
@@ -238,10 +238,10 @@ function ChatPage() {
     try {
       setMessages([{ role: 'bot', content: '대화 기록이 삭제되었습니다. 새로운 상담을 시작해주세요! 😊' }]);
       setCurrentEmotion(null);
-      setEmotionHistory([]);
+      // setEmotionHistory([]); // 미사용 setter 주석 처리
       setSuggestedQuestions([]);
       setIsSessionEnded(false);
-      setResolutionResult(null);
+      // setResolutionResult(null); // 미사용 setter 주석 처리
       localStorage.removeItem(HISTORY_KEY);
     } catch (error) {
       console.error('[히스토리] 삭제 오류:', error);

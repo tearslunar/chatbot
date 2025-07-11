@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './PersonaSelector.css';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -9,12 +9,7 @@ function PersonaSelector({ onPersonaSelect, selectedPersona }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // 페르소나 목록 로드
-  useEffect(() => {
-    loadPersonas();
-  }, [searchKeyword]);
-
-  const loadPersonas = async () => {
+  const loadPersonas = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -35,7 +30,12 @@ function PersonaSelector({ onPersonaSelect, selectedPersona }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchKeyword]);
+
+  // 페르소나 목록 로드
+  useEffect(() => {
+    loadPersonas();
+  }, [loadPersonas]);
 
   const handlePersonaSelect = (persona) => {
     onPersonaSelect(persona);

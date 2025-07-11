@@ -1,7 +1,7 @@
 import CryptoJS from 'crypto-js';
 
 // 🔐 보안 설정
-const ENCRYPTION_KEY = process.env.REACT_APP_ENCRYPTION_KEY || 'hi-care-2024-secure-key-32ch';
+const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'hi-care-2024-secure-key-32ch';
 const IV_LENGTH = 16; // AES block size
 
 /**
@@ -84,14 +84,15 @@ export const maskPersonalData = (data, type) => {
   const cleanData = data.trim();
   
   switch (type) {
-    case 'name':
+    case 'name': {
       // 이름: 홍*동, 김** (2자 이상일 때 중간 마스킹)
       if (cleanData.length <= 2) {
         return cleanData[0] + '*';
       }
       return cleanData[0] + '*'.repeat(cleanData.length - 2) + cleanData[cleanData.length - 1];
+    }
       
-    case 'phone':
+    case 'phone': {
       // 전화번호: 010-1234-5678 → 010-****-5678
       const phoneMatch = cleanData.match(/^(\d{3})-?(\d{4})-?(\d{4})$/);
       if (phoneMatch) {
@@ -100,8 +101,9 @@ export const maskPersonalData = (data, type) => {
       return cleanData.replace(/\d/g, (char, index) => 
         index < 3 || index >= cleanData.length - 4 ? char : '*'
       );
+    }
       
-    case 'email':
+    case 'email': {
       // 이메일: example@email.com → ex***@email.com
       const emailParts = cleanData.split('@');
       if (emailParts.length === 2) {
@@ -113,16 +115,18 @@ export const maskPersonalData = (data, type) => {
         return `${maskedLocal}@${domainPart}`;
       }
       return cleanData;
+    }
       
-    case 'card':
+    case 'card': {
       // 카드번호: 1234-5678-9012-3456 → 1234-****-****-3456
       const cardClean = cleanData.replace(/\D/g, '');
       if (cardClean.length >= 8) {
         return cardClean.substring(0, 4) + '-****-****-' + cardClean.substring(cardClean.length - 4);
       }
       return '*'.repeat(cleanData.length);
+    }
       
-    case 'account':
+    case 'account': {
       // 계좌번호: 123-456-789012 → 123-***-**9012
       const accountParts = cleanData.split('-');
       if (accountParts.length >= 2) {
@@ -133,21 +137,24 @@ export const maskPersonalData = (data, type) => {
         return accountParts[0] + '-***-' + maskedLast;
       }
       return cleanData;
+    }
       
-    case 'birthDate':
+    case 'birthDate': {
       // 생년월일: 1990-01-01 → 19**-**-01
       if (cleanData.match(/^\d{4}-\d{2}-\d{2}$/)) {
         const parts = cleanData.split('-');
         return `${parts[0].substring(0, 2)}**-**-${parts[2]}`;
       }
       return cleanData;
+    }
       
-    default:
+    default: {
       // 기본: 앞 2자, 뒤 2자 제외하고 마스킹
       if (cleanData.length <= 4) {
         return cleanData[0] + '*'.repeat(cleanData.length - 1);
       }
       return cleanData.substring(0, 2) + '*'.repeat(cleanData.length - 4) + cleanData.substring(cleanData.length - 2);
+    }
   }
 };
 
@@ -169,7 +176,7 @@ export const validateAndFormatSecureInput = (value, type) => {
   }
 
   switch (type) {
-    case 'cardNumber':
+    case 'cardNumber': {
       // 카드번호: 숫자만 허용, 16자리 검증
       const cardDigits = value.replace(/\D/g, '');
       if (cardDigits.length > 16) {
@@ -180,8 +187,9 @@ export const validateAndFormatSecureInput = (value, type) => {
         result.formattedValue = cardDigits.replace(/(\d{4})/g, '$1-').replace(/-$/, '');
       }
       break;
+    }
       
-    case 'cvv':
+    case 'cvv': {
       // CVV: 숫자만 허용, 3-4자리
       const cvvDigits = value.replace(/\D/g, '');
       if (cvvDigits.length > 4) {
@@ -191,8 +199,9 @@ export const validateAndFormatSecureInput = (value, type) => {
         result.formattedValue = cvvDigits;
       }
       break;
+    }
       
-    case 'expiryDate':
+    case 'expiryDate': {
       // 유효기간: MM/YY 형식
       const expiryDigits = value.replace(/\D/g, '');
       if (expiryDigits.length > 4) {
@@ -202,8 +211,9 @@ export const validateAndFormatSecureInput = (value, type) => {
         result.formattedValue = expiryDigits.replace(/(\d{2})(\d{1,2})/, '$1/$2');
       }
       break;
+    }
       
-    case 'phone':
+    case 'phone': {
       // 전화번호: 숫자만 허용, 010으로 시작
       const phoneDigits = value.replace(/\D/g, '');
       if (phoneDigits.length > 11) {
@@ -217,6 +227,7 @@ export const validateAndFormatSecureInput = (value, type) => {
         result.formattedValue = phoneDigits.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
       }
       break;
+    }
       
     default:
       break;
@@ -231,7 +242,7 @@ export const validateAndFormatSecureInput = (value, type) => {
  * @param {Object} metadata - 메타데이터
  */
 export const logSecurityEvent = (action, metadata = {}) => {
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.log(`[보안 감사] ${new Date().toISOString()} - ${action}`, {
       timestamp: Date.now(),
       userAgent: navigator.userAgent,

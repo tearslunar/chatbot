@@ -68,7 +68,7 @@ function FeedbackModal({ sessionId, onClose, onRestart }) {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        // const data = await response.json(); // 미사용 변수 주석 처리
         setSubmitted(true);
         
         // 3초 후 자동으로 모달 닫기

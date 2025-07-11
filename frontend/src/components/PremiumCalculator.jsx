@@ -40,7 +40,7 @@ const PremiumCalculator = ({
 
   const [calculationResult, setCalculationResult] = useState(null);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [discounts, setDiscounts] = useState([]);
+  // const [discounts, setDiscounts] = useState([]); // 미사용 state 주석 처리
 
   // 페르소나 정보가 있으면 자동으로 일부 필드 채우기
   useEffect(() => {

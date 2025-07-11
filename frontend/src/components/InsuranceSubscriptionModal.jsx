@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './InsuranceSubscriptionModal.css';
 import { SecurityUtils } from '../utils/encryption';
 
@@ -105,12 +105,35 @@ function InsuranceSubscriptionModal({ isOpen, onClose, selectedPersona, actionCo
   const [recommendedProducts, setRecommendedProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 페르소나 기반 상품 추천
+  // 추천 상품 로드 함수 (useCallback으로 메모화)
+  const loadRecommendedProducts = useCallback(async () => {
+    if (!selectedPersona) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/get-recommended-products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ persona: selectedPersona })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setRecommendedProducts(data.products || []);
+      }
+    } catch (error) {
+      console.error('상품 추천 로드 실패:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedPersona]);
+
+  // 추천 상품 로드
   useEffect(() => {
     if (selectedPersona && isOpen) {
       loadRecommendedProducts();
     }
-  }, [selectedPersona, isOpen]);
+  }, [selectedPersona, isOpen, loadRecommendedProducts]);
 
   // 대화 액션 컨텍스트 처리
   useEffect(() => {
@@ -132,28 +155,6 @@ function InsuranceSubscriptionModal({ isOpen, onClose, selectedPersona, actionCo
       }
     }
   }, [actionContext, isOpen]);
-
-  const loadRecommendedProducts = async () => {
-    if (!selectedPersona) return;
-    
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/get-recommended-products`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ persona: selectedPersona })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setRecommendedProducts(data.products || []);
-      }
-    } catch (error) {
-      console.error('상품 추천 로드 실패:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // 입력값 업데이트
   const updateFormData = (field, value) => {

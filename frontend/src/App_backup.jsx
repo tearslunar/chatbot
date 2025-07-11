@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import './App.css';
@@ -55,7 +55,7 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [QuickMenuOpen, setQuickMenuOpen] = useState(false);
   const [currentEmotion, setCurrentEmotion] = useState(null);
-  const [emotionHistory, setEmotionHistory] = useState([]);
+  // const [emotionHistory, setEmotionHistory] = useState([]); // 미사용 state 주석 처리
   const [expandedFAQ, setExpandedFAQ] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [selectedTag, setSelectedTag] = useState(null);
@@ -66,7 +66,7 @@ function App() {
   const [hoveredRating, setHoveredRating] = useState(0);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [resolutionResult, setResolutionResult] = useState(null);
-  const [fromSuggestion, setFromSuggestion] = useState(false);
+  // const [fromSuggestion, setFromSuggestion] = useState(false); // 미사용 state 주석 처리
   const [selectedPersona, setSelectedPersona] = useState(null);
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
@@ -91,7 +91,7 @@ function App() {
     const emotions = messages
       .filter(msg => msg.emotion)
       .map(msg => msg.emotion);
-    setEmotionHistory(emotions);
+    // setEmotionHistory(emotions); // 미사용 setter 주석 처리
     
     // 최신 감정 설정
     if (emotions.length > 0) {
@@ -123,7 +123,6 @@ function App() {
       
       // 추가 30초 후 자동 종료
       const finalTimer = setTimeout(() => {
-        console.log('[비활성 타이머] 3분 경과로 상담을 자동 종료합니다.');
         handleInactivityTimeout();
       }, 30000); // 30초 추가 대기
       
@@ -137,7 +136,7 @@ function App() {
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [lastActivityTime, isSessionEnded]);
+  }, [lastActivityTime, isSessionEnded, inactivityTimer, handleInactivityTimeout]);
 
   // 경고 표시 중 남은 시간 카운트다운
   useEffect(() => {
@@ -214,7 +213,8 @@ function App() {
           }]);
         }, 2000); // 2초 후 종료 처리
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('API 호출 오류:', error);
       setMessages(prev => ([...prev, { role: 'bot', content: '서버와의 통신에 문제가 발생했습니다.' }]));
     } finally {
       setIsBotTyping(false);
@@ -317,7 +317,7 @@ function App() {
     setIsSessionEnded(false);
     setMessages([{ role: 'bot', content: '안녕하세요! 무엇을 도와드릴까요?' }]);
     setCurrentEmotion(null);
-    setEmotionHistory([]);
+    // setEmotionHistory([]); // 미사용 setter 주석 처리
     setSelectedPersona(null);
     setResolutionResult(null); // 감정 해소 분석 결과 초기화
   };
@@ -327,7 +327,7 @@ function App() {
     setMessages([{ role: 'bot', content: '안녕하세요! 무엇을 도와드릴까요?' }]);
     setIsSessionEnded(false);
     setCurrentEmotion(null);
-    setEmotionHistory([]);
+    // setEmotionHistory([]); // 미사용 setter 주석 처리
     setSelectedPersona(null);
     setResolutionResult(null); // 감정 해소 분석 결과 초기화
     localStorage.removeItem(HISTORY_KEY);
@@ -369,15 +369,28 @@ function App() {
     setExpandedFAQ(expandedFAQ === idx ? null : idx);
   };
 
-  // 카테고리/태그 목록 추출 (중복 제거)
-  const allFaqs = messages.find(msg => msg.role === 'bot' && msg.recommended_faqs)?.recommended_faqs || [];
-  const categories = ['전체', ...Array.from(new Set(allFaqs.map(faq => faq.category).filter(Boolean)))];
-  const tags = Array.from(new Set(allFaqs.flatMap(faq => faq.tags || []).filter(Boolean)));
+  // 카테고리/태그 목록 추출 (중복 제거) - useMemo로 메모화
+  const allFaqs = useMemo(() => {
+    return messages.find(msg => msg.role === 'bot' && msg.recommended_faqs)?.recommended_faqs || [];
+  }, [messages]);
+
+  const categories = useMemo(() => 
+    ['전체', ...Array.from(new Set(allFaqs.map(faq => faq.category).filter(Boolean)))],
+    [allFaqs]
+  );
+
+  const tags = useMemo(() => 
+    Array.from(new Set(allFaqs.flatMap(faq => faq.tags || []).filter(Boolean))),
+    [allFaqs]
+  );
 
   // 필터링된 FAQ
-  const filteredFaqs = allFaqs.filter(faq =>
-    (selectedCategory === '전체' || faq.category === selectedCategory) &&
-    (!selectedTag || (faq.tags && faq.tags.includes(selectedTag)))
+  const filteredFaqs = useMemo(() => 
+    allFaqs.filter(faq =>
+      (selectedCategory === '전체' || faq.category === selectedCategory) &&
+      (!selectedTag || (faq.tags && faq.tags.includes(selectedTag)))
+    ),
+    [allFaqs, selectedCategory, selectedTag]
   );
 
   // 추천 FAQ 렌더링 컴포넌트 수정
@@ -467,7 +480,7 @@ function App() {
   const handleSuggestionSelect = (q) => {
     setInput(q);
     setSuggestedQuestions([]);
-    setFromSuggestion(true);
+    // setFromSuggestion(true); // 미사용 setter 주석 처리
   };
 
   // 페르소나 선택 핸들러
@@ -532,10 +545,10 @@ function App() {
   };
 
   useEffect(() => {
-    if (fromSuggestion) {
-      setFromSuggestion(false);
-      return;
-    }
+    // if (fromSuggestion) {
+    //   setFromSuggestion(false);
+    //   return;
+    // } // 미사용 로직 주석 처리
     if (!input.trim()) {
       setSuggestedQuestions([]);
       return;
@@ -549,8 +562,8 @@ function App() {
     setSuggestedQuestions(matches);
   }, [input]);
 
-  // 비활성 타이머 종료 시 처리
-  const handleInactivityTimeout = () => {
+  // 비활성 타이머 종료 시 처리 (useCallback으로 메모화)
+  const handleInactivityTimeout = useCallback(() => {
     console.log('[비활성 타이머] 3분 경과로 상담을 자동 종료합니다.');
     setIsSessionEnded(true);
     setCurrentEmotion(null);
@@ -570,7 +583,7 @@ function App() {
     setTimeout(() => {
       setIsFeedbackModalOpen(true);
     }, 1000); // 1초 후 피드백 모달 표시
-  };
+  }, [inactivityTimer]);
 
   return (
     <div className="chat-container">

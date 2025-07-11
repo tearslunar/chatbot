@@ -3,7 +3,7 @@
  * 세션 상태, 비활성 타이머, 자동 종료 등을 관리
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 /**
  * 세션 관리자 컴포넌트
@@ -25,8 +25,11 @@ function SessionManager({
   const [remainingTime, setRemainingTime] = useState(inactivityTimeout);
   const [sessionStartTime] = useState(Date.now());
 
-  // 활동 감지 이벤트들
-  const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+  // 활동 감지 이벤트들 (메모화)
+  const activityEvents = React.useMemo(() => 
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'], 
+    []
+  );
 
   // 활동 감지 및 타이머 리셋
   const resetInactivityTimer = useCallback(() => {

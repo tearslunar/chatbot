@@ -73,11 +73,11 @@ class ApiClient {
       
       try {
         errorData = await response.json();
-      } catch (e) {
+      } catch {
         // JSON 파싱 실패 시 텍스트로 시도
         try {
           errorData = { message: await response.text() };
-        } catch (e2) {
+        } catch {
           errorData = { message: '알 수 없는 에러가 발생했습니다.' };
         }
       }
@@ -91,7 +91,7 @@ class ApiClient {
 
     try {
       return await response.json();
-    } catch (e) {
+    } catch {
       // JSON이 아닌 응답의 경우
       return { success: true };
     }
