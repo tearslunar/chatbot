@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 현대해상 AI 챗봇 - Firebase + Docker 빠른 배포 스크립트
+# Hi-Care AI 챗봇 - Firebase + Docker 빠른 배포 스크립트
 
 set -e
 
@@ -11,7 +11,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${BLUE}=== 현대해상 AI 챗봇 배포 시작 ===${NC}"
+echo -e "${BLUE}=== Hi-Care AI 챗봇 배포 시작 ===${NC}"
 
 # 1. 환경변수 체크
 echo -e "${YELLOW}1. 환경변수 확인 중...${NC}"

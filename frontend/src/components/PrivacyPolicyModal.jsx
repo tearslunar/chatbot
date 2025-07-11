@@ -47,7 +47,7 @@ const PrivacyPolicyModal = ({ isOpen, onClose, policyType = 'privacy' }) => {
 
 8. 개인정보보호 책임자
    - 성명: 김○○ (개인정보보호팀장)
-   - 연락처: privacy@hyundai.com
+   - 연락처: privacy@hi-care.com
    - 전화: 02-3702-6000
 
 ※ 본 동의를 거부할 권리가 있으나, 거부 시 보험계약 체결이 제한될 수 있습니다.
@@ -121,7 +121,7 @@ const PrivacyPolicyModal = ({ isOpen, onClose, policyType = 'privacy' }) => {
 
 5. 동의 철회
    - 고객센터 전화: 1588-5656
-   - 이메일: unsubscribe@hyundai.com
+   - 이메일: unsubscribe@hi-care.com
    - 홈페이지 마이페이지에서 직접 변경
 
 ※ 본 동의는 선택사항이며, 거부하셔도 보험서비스 이용에는 제한이 없습니다.

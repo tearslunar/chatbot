@@ -1,4 +1,4 @@
-# 현대해상 AI 채팅 상담 시스템 (MVP)
+# Hi-Care AI 채팅 상담 시스템 (MVP)
 
 ## 전체 챗봇 처리 흐름
 
@@ -34,7 +34,7 @@ flowchart TD
 ```
 
 ## 프로젝트 개요
-- 현대해상화재보험의 차세대 AI 기반 채팅 상담 시스템 MVP
+- Hi-Care의 차세대 AI 기반 채팅 상담 시스템 MVP
 - FastAPI(백엔드) + React(프론트엔드) + Sentence Transformers 기반 RAG + Potensdot 감정분석
 - 모바일 최적화, FAQ 추천, 감정 분석, 보험 엔터티 추출, 맞춤형 응답 등 핵심 기능 구현
 
@@ -46,7 +46,7 @@ flowchart TD
 
 ## 폴더 구조
 ```
-hyundai-chatbot/
+hi-care-chatbot/
 ├── backend/           # FastAPI 백엔드
 │   ├── app/
 │   │   ├── main.py

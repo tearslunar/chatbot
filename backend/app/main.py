@@ -53,7 +53,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 if os.environ.get("ENVIRONMENT") == "production":
     app.add_middleware(
         TrustedHostMiddleware, 
-        allowed_hosts=["hyundai-insurance.com", "*.hyundai-insurance.com"]
+        allowed_hosts=["hi-care.com", "*.hi-care.com"]
     )
 
 app.include_router(emotion_router)
@@ -68,8 +68,8 @@ if not allowed_origins or len(allowed_origins) == 1 and allowed_origins[0] == "h
     allowed_origins = [
         "http://localhost:3000",
         "http://localhost:5173", 
-        "https://new-hyundai-chatbot.web.app",
-        "https://new-hyundai-chatbot.firebaseapp.com",
+            "https://new-hi-care-chatbot.web.app",
+    "https://new-hi-care-chatbot.firebaseapp.com",
         "https://218457e5970e.ngrok-free.app"
     ]
     print(f"[DEBUG] Using hardcoded CORS origins: {allowed_origins}")
@@ -231,7 +231,7 @@ class ChatResponse(BaseModel):
 
 @app.get("/")
 def read_root():
-    return {"message": "Hyundai Chatbot API is running"}
+    return {"message": "Hi-Care Chatbot API is running"}
 
 @app.get("/health")
 def health_check():

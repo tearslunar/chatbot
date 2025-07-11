@@ -1,0 +1,3 @@
+# 프로덕션 환경 (Firebase 배포용)
+# 실제 서버 IP로 변경하세요
+VITE_API_URL=http://your-server-ip:7713

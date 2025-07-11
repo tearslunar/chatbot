@@ -22,8 +22,8 @@ apt-get install -y nodejs
 cd /workspace  # 또는 원하는 디렉토리
 
 # GitHub repo clone
-git clone https://github.com/your-username/hyundai-chatbot.git
-cd hyundai-chatbot
+git clone https://github.com/your-username/hi-care-chatbot.git
+cd hi-care-chatbot
 ```
 
 ### 백엔드 설정 및 실행

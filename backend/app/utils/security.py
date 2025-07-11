@@ -12,8 +12,8 @@ import base64
 import os
 
 # 🔐 보안 설정
-SECURITY_KEY = os.environ.get("SECURITY_ENCRYPTION_KEY", "hyundai-insurance-server-security-key-2024")
-SALT = b'hyundai_insurance_salt_2024'
+SECURITY_KEY = os.environ.get("SECURITY_ENCRYPTION_KEY", "hi-care-server-security-key-2024")
+SALT = b'hi_care_salt_2024'
 
 # 암호화 키 생성
 def generate_encryption_key(password: str, salt: bytes) -> bytes:

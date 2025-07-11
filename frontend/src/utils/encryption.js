@@ -1,7 +1,7 @@
 import CryptoJS from 'crypto-js';
 
 // 🔐 보안 설정
-const ENCRYPTION_KEY = process.env.REACT_APP_ENCRYPTION_KEY || 'hyundai-insurance-2024-secure-key-32ch';
+const ENCRYPTION_KEY = process.env.REACT_APP_ENCRYPTION_KEY || 'hi-care-2024-secure-key-32ch';
 const IV_LENGTH = 16; // AES block size
 
 /**

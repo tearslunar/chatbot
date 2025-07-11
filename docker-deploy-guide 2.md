@@ -1,4 +1,4 @@
-# Docker 환경에서 Hi-Care AI 챗봇 배포 가이드
+# Docker 환경에서 현대해상 AI 챗봇 배포 가이드
 
 ## 1. 사전 준비사항
 
@@ -358,4 +358,4 @@ tar -czf hyundai-chatbot-$(date +%Y%m%d).tar.gz /app/hyundai-chatbot
 # docker exec -it backend-db mysqldump -u root -p dbname > backup.sql
 ```
 
-이 가이드를 따라 Docker 환경에서 Hi-Care AI 챗봇을 성공적으로 배포할 수 있습니다. 
+이 가이드를 따라 Docker 환경에서 현대해상 AI 챗봇을 성공적으로 배포할 수 있습니다. 

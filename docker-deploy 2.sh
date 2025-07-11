@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Docker 환경에서 Hi-Care AI 챗봇 배포 스크립트
+# Docker 환경에서 현대해상 AI 챗봇 배포 스크립트
 # 사용법: ./docker-deploy.sh [options]
 
 set -e
@@ -31,7 +31,7 @@ log_debug() {
 
 # 도움말 표시
 show_help() {
-    echo "Hi-Care AI 챗봇 Docker 배포 스크립트"
+    echo "현대해상 AI 챗봇 Docker 배포 스크립트"
     echo ""
     echo "사용법: $0 [options]"
     echo ""
@@ -246,7 +246,7 @@ main() {
         clean_resources
     else
         # 기본 배포 프로세스
-        log_info "Hi-Care AI 챗봇 Docker 배포 시작"
+        log_info "현대해상 AI 챗봇 Docker 배포 시작"
         check_prerequisites
         build_images
         start_services

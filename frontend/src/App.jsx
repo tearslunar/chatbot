@@ -590,7 +590,7 @@ function App() {
           )}
         </div>
         <div className="chat-header">
-          현대해상 AI 챗봇
+          Hi-Care AI 챗봇
           {currentEmotion && <EmotionIndicator emotion={currentEmotion} />}
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
