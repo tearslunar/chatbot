@@ -41,7 +41,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                     "script-src 'self' 'unsafe-inline'; "
                     "style-src 'self' 'unsafe-inline'; "
                     "img-src 'self' data: https:; "
-                    "connect-src 'self' https://api.openai.com https://*.potensdot.com;"
+                    "connect-src 'self' https://ai.potens.ai https://*.potensdot.com;"
                 )
             
             # 응답 시간 헤더 추가 (개발 환경)

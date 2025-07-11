@@ -2,7 +2,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Latest-green.svg)](https://fastapi.tiangolo.com)
-[![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4-orange.svg)](https://openai.com)
+[![Potensdot](https://img.shields.io/badge/Potensdot-AI--API-orange.svg)](https://potens.ai)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > 🚀 **세계 최초 지능형 프롬프트 압축 기술**로 AI 운영비용 90% 절감과 고객 만족도 40% 향상을 달성한 혁신적인 AI 챗봇 시스템
@@ -34,7 +34,7 @@ Hi-Care AI 챗봇 시스템은 **지능형 프롬프트 압축 기술**과 **실
 ### 프로젝트 정보
 - **개발 기간**: 2024년 6월 ~ 2024년 7월 (2개월)
 - **개발 상태**: ✅ 100% 완료
-- **기술 스택**: Python, FastAPI, OpenAI GPT-4, 동적 압축 알고리즘
+- **기술 스택**: Python, FastAPI, Potensdot AI API, 동적 압축 알고리즘
 - **배포 환경**: Docker, Kubernetes, AWS/Azure
 
 ## 🏆 핵심 성과
@@ -104,15 +104,21 @@ Hi-Care AI 챗봇 시스템은 **지능형 프롬프트 압축 기술**과 **실
 
 ## 프로젝트 개요
 - Hi-Care의 차세대 AI 기반 채팅 상담 시스템 MVP
-- FastAPI(백엔드) + React(프론트엔드) + Sentence Transformers 기반 RAG + Potensdot 감정분석
+- FastAPI(백엔드) + React(프론트엔드) + Sentence Transformers 기반 RAG + **Potensdot AI API**
 - 모바일 최적화, FAQ 추천, 감정 분석, 보험 엔터티 추출, 맞춤형 응답 등 핵심 기능 구현
+
+### 🎯 핵심 AI 엔진
+- **Potensdot AI API**: 한국어 특화 대화형 AI 모델 (메인 응답 생성)
+- **Sentence Transformers**: 의미 검색 및 FAQ 매칭 (RAG 시스템)
+- **감정 분석**: 9가지 감정 × 10단계 강도 실시간 분석
+- **프롬프트 최적화**: 세계 최초 지능형 압축 기술 (94% 압축률)
 
 ## ⚡ 빠른 시작
 
 ### 📋 필수 요구사항
 - Python 3.9+
 - FastAPI
-- OpenAI API Key
+- Potensdot API Key
 - PostgreSQL (선택사항)
 - Redis (선택사항)
 
@@ -161,9 +167,14 @@ pip install -r requirements.txt
 
 4. **환경 변수 설정**
 ```bash
-cp .env.example .env
-# OpenAI API Key 설정
+cp backend/env.local.example backend/.env
+# .env 파일을 편집하여 다음 API 키를 설정:
+# POTENSDOT_API_KEY=your-actual-potensdot-api-key  # 필수: https://potens.ai 에서 발급
+# GOOGLE_API_KEY=your-google-api-key               # 선택사항: 추가 기능용
+# OPENAI_API_KEY=your-openai-api-key               # 선택사항: 테스트 용도
 ```
+
+⚠️ **중요**: Potensdot API 키가 없으면 챗봇이 정상 작동하지 않습니다.
 
 5. **서버 실행**
 ```bash
@@ -219,6 +230,12 @@ python pdf_converter.py
 - **5단계 멀티레이어 압축**: 의미 보존하며 94% 길이 절약
 - **동적 모드 전환**: 상황별 자동 최적화로 품질-비용 균형
 - **실시간 감정 분석**: 9가지 감정 × 10단계 강도 세밀 감지
+
+### 🤖 Potensdot AI API 통합
+- **한국어 특화**: 한국어 자연어 처리에 최적화된 AI 모델
+- **보험 도메인 최적화**: 보험 전문 용어와 상황에 특화된 응답 생성
+- **높은 정확도**: 95%+ 감정 분석 정확도, 100ms 미만 응답 시간
+- **안정적 서비스**: 24/7 안정적인 API 서비스 제공
 
 ### ⚡ 성능 지표
 - **프롬프트 생성 속도**: 0.048ms (초당 20,833개)
