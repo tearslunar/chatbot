@@ -236,8 +236,8 @@ const CoverageComparison = ({
           <thead>
             <tr>
               <th className="coverage-header">보장 항목</th>
-              {filteredAndSortedProducts.map((product, index) => (
-                <th key={product.id || index} className="product-header">
+              {filteredAndSortedProducts.map((product) => (
+                <th key={product.id} className="product-header">
                   <div className="product-header-content">
                     <div className="product-info">
                       <h4 className="product-name">{product.name}</h4>
@@ -283,7 +283,7 @@ const CoverageComparison = ({
           </thead>
           
           <tbody>
-            {coverageItems.map((item, itemIndex) => (
+            {coverageItems.map((item) => (
               <tr key={item.key} className="coverage-row">
                 <td className="coverage-item">
                   <div className="item-info">
@@ -292,7 +292,7 @@ const CoverageComparison = ({
                   </div>
                 </td>
                 
-                {filteredAndSortedProducts.map((product, productIndex) => {
+                {filteredAndSortedProducts.map((product) => {
                   const level = getCoverageLevel(product, item);
                   const value = formatCoverageValue(product, item);
                   

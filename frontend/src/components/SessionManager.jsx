@@ -29,11 +29,11 @@ function SessionManager({
   const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
 
   // 활동 감지 및 타이머 리셋
-  const resetInactivityTimer = () => {
+  const resetInactivityTimer = useCallback(() => {
     setLastActivity(Date.now());
     setShowInactivityWarning(false);
     setRemainingTime(inactivityTimeout);
-  };
+  }, [inactivityTimeout]);
 
   // 비활성 타이머 관리
   useEffect(() => {
@@ -69,7 +69,7 @@ function SessionManager({
       clearTimeout(warningTimer);
       clearTimeout(endTimer);
     };
-  }, [lastActivity, isSessionEnded, inactivityTimeout, onSessionEnd]);
+  }, [lastActivity, isSessionEnded, inactivityTimeout, onSessionEnd, activityEvents, resetInactivityTimer]);
 
   // 경고 표시 중 카운트다운
   useEffect(() => {

@@ -57,7 +57,7 @@ const INSURANCE_CATEGORIES = [
   }
 ];
 
-function InsuranceSubscriptionModal({ isOpen, onClose, selectedPersona, actionContext }) {
+function InsuranceSubscriptionModal({ isOpen, onClose, selectedPersona, actionContext, sessionId = 'unknown' }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     // 상품 선택
@@ -365,7 +365,7 @@ function InsuranceSubscriptionModal({ isOpen, onClose, selectedPersona, actionCo
 
         {/* 진행 단계 표시 */}
         <div className="step-progress">
-          {SUBSCRIPTION_STEPS.map((step, index) => (
+          {SUBSCRIPTION_STEPS.map((step) => (
             <div 
               key={step.id} 
               className={`step-item ${currentStep >= step.id ? 'active' : ''} ${currentStep === step.id ? 'current' : ''}`}
@@ -401,8 +401,8 @@ function InsuranceSubscriptionModal({ isOpen, onClose, selectedPersona, actionCo
                         <h5>{product.name}</h5>
                         <p className="product-price">{product.price}</p>
                         <ul className="product-features">
-                          {product.features.map((feature, idx) => (
-                            <li key={idx}>{feature}</li>
+                          {product.features.map((feature, featureIdx) => (
+                            <li key={featureIdx}>{feature}</li>
                           ))}
                         </ul>
                       </div>
@@ -432,8 +432,8 @@ function InsuranceSubscriptionModal({ isOpen, onClose, selectedPersona, actionCo
                           <h5>{product.name}</h5>
                           <p className="product-price">{product.price}</p>
                           <ul className="product-features">
-                            {product.features.map((feature, idx) => (
-                              <li key={idx}>{feature}</li>
+                            {product.features.map((feature, featureIdx) => (
+                              <li key={featureIdx}>{feature}</li>
                             ))}
                           </ul>
                         </div>

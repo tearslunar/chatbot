@@ -445,7 +445,7 @@ function App() {
   };
 
   // 입력창 위에 추천 질문 노출 (상위 3개)
-  const quickQuestions = allFaqs.slice(0, 3);
+  // const quickQuestions = allFaqs.slice(0, 3); // 미사용 변수 주석 처리
 
   // 입력값과 유사한 FAQ 질문 실시간 추천
   const [autoCompleteFaqs, setAutoCompleteFaqs] = useState([]);
