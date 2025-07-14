@@ -36,8 +36,8 @@
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  z-index: 1000;
-  max-height: 300px;
+  z-index: 1500;
+  max-height: 250px;
   overflow: hidden;
 }
 
@@ -60,7 +60,7 @@
 }
 
 .persona-list {
-  max-height: 240px;
+  max-height: 190px;
   overflow-y: auto;
 }
 

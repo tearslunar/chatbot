@@ -6,17 +6,19 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: production
     container_name: hi-care-chatbot-backend
     ports:
       - "8000:8000"
     environment:
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=production
     env_file:
       - ./backend/.env
     volumes:
-      - ./backend/app:/app/app
-      - ./data:/app/data
+      - ./data:/app/data:ro
+      - app-logs:/app/logs
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -26,48 +28,73 @@ services:
       start_period: 40s
     networks:
       - chatbot-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
 
-  # 프론트엔드 서비스
+  # 프론트엔드 서비스 (nginx 기반)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: production
     container_name: hi-care-chatbot-frontend
     ports:
-      - "3000:3000"
+      - "3000:80"
+    environment:
+      - VITE_API_URL=http://localhost:8000
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 20s
     networks:
       - chatbot-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
 
-  # Nginx 리버스 프록시 (선택사항)
-  nginx:
-    image: nginx:alpine
-    container_name: hi-care-chatbot-nginx
+  # Redis (캐싱용, 선택사항)
+  redis:
+    image: redis:7-alpine
+    container_name: hi-care-chatbot-redis
     ports:
-      - "80:80"
-      - "443:443"
+      - "6379:6379"
+    command: redis-server --appendonly yes
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/ssl:/etc/nginx/ssl
-    depends_on:
-      - backend
-      - frontend
+      - redis-data:/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - chatbot-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.2'
 
 networks:
   chatbot-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
 
 volumes:
-  app-data:
+  app-logs:
+    driver: local
+  redis-data:
     driver: local 

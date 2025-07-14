@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # 백엔드 서비스 (개발용)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: hi-care-chatbot-backend-dev
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=development
+      - DEBUG=true
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data
+    restart: unless-stopped
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    networks:
+      - chatbot-network-dev
+
+  # 프론트엔드 서비스 (개발용)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: hi-care-chatbot-frontend-dev
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+    networks:
+      - chatbot-network-dev
+
+  # Redis (개발용)
+  redis:
+    image: redis:7-alpine
+    container_name: hi-care-chatbot-redis-dev
+    ports:
+      - "6379:6379"
+    command: redis-server
+    restart: unless-stopped
+    networks:
+      - chatbot-network-dev
+
+networks:
+  chatbot-network-dev:
+    driver: bridge

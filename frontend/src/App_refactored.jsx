@@ -42,7 +42,7 @@ function ChatApp() {
       
       try {
         // 페르소나 설정 API 호출
-        const res = await fetch(`${API_URL}/persona/set`, {
+        const res = await fetch(`${API_URL}/persona/set-persona`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -58,44 +58,24 @@ function ChatApp() {
           console.log('페르소나 설정 완료:', persona);
           
           // 페르소나 기반 인사말 생성
-          try {
-            const greetingRes = await fetch(`${API_URL}/persona/greeting`, {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true'
-              },
-              body: JSON.stringify({ session_id: sessionId })
-            });
-            
-            if (greetingRes.ok) {
-              const greetingData = await greetingRes.json();
-              if (greetingData.success) {
-                actions.addMessage({ 
-                  role: 'bot', 
-                  content: greetingData.greeting 
-                });
-              }
-            } else {
-              console.warn('인사말 생성 실패:', greetingRes.status);
+          const greetingRes = await fetch(`${API_URL}/persona/get-persona-greeting`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true'
+            },
+            body: JSON.stringify({ session_id: sessionId })
+          });
+          
+          if (greetingRes.ok) {
+            const greetingData = await greetingRes.json();
+            if (greetingData.success) {
               actions.addMessage({ 
                 role: 'bot', 
-                content: `안녕하세요! ${persona.페르소나명}님의 상황을 고려한 맞춤 상담을 도와드리겠습니다. 무엇을 도와드릴까요?` 
+                content: greetingData.greeting 
               });
             }
-          } catch (greetingError) {
-            console.error('인사말 API 호출 실패:', greetingError);
-            actions.addMessage({ 
-              role: 'bot', 
-              content: `안녕하세요! ${persona.페르소나명}님을 위한 맞춤 상담을 시작합니다. 무엇을 도와드릴까요?` 
-            });
           }
-        } else {
-          console.error('페르소나 설정 실패:', res.status);
-          actions.addMessage({ 
-            role: 'bot', 
-            content: '페르소나 설정에 실패했습니다. 일반 상담으로 진행하겠습니다. 무엇을 도와드릴까요?' 
-          });
         }
       } catch (e) {
         console.error('페르소나 설정 실패:', e);

@@ -392,14 +392,6 @@ function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* 추천 질문 */}
-      {suggestedQuestions.length > 0 && !isSessionEnded && (
-        <SuggestedQuestions
-          questions={suggestedQuestions}
-          onQuestionSelect={handleSuggestionSelect}
-        />
-      )}
-
       {/* 페르소나 선택기 */}
       {!selectedPersona && !isSessionEnded && (
         <PersonaSelector onPersonaSelect={handlePersonaSelect} />

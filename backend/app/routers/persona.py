@@ -125,7 +125,7 @@ def persona_list(
 ):
     """페르소나 목록 조회"""
     try:
-        personas = persona_manager.search_personas(keyword=keyword, limit=limit)
+        personas = persona_manager.list_personas(keyword=keyword, limit=limit)
         
         logger.info(f"페르소나 목록 조회: 키워드='{keyword}', 결과={len(personas)}개")
         

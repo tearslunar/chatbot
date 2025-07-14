@@ -11,6 +11,16 @@ import transformers
 import packaging
 print(f"[버전 체크] torch: {torch.__version__}, transformers: {transformers.__version__}, packaging: {packaging.__version__}")
 
+# 캐싱 시스템 import
+try:
+    from ..cache.decorators import cache_result
+except ImportError:
+    # 스탠드얼론 실행 시 캐싱 비활성화
+    def cache_result(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
 # 파일 경로
 FAQ_JSON_PATH = os.path.join(os.path.dirname(__file__), 'hi_faq.json')
 EMBEDDINGS_PATH = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', 'faq_embeddings.pkl')
@@ -78,6 +88,7 @@ def get_query_embedding(query: str):
     text = query.strip()
     return model.encode([text])[0].astype('float32')
 
+@cache_result(ttl=600, key_prefix="faq_search_")  # 10분 캐싱
 def search_faqs(query: str, top_n: int = 3) -> List[Dict]:
     """
     query: 사용자의 질문
@@ -97,6 +108,12 @@ def search_faqs(query: str, top_n: int = 3) -> List[Dict]:
             'score': float(-score)  # FAISS L2 거리이므로, -score로 유사도처럼 사용
         })
     return results
+
+
+@cache_result(ttl=1800, key_prefix="query_embedding_")  # 30분 캐싱
+def get_query_embedding_cached(query: str):
+    """캐싱된 쿼리 임베딩 생성"""
+    return get_query_embedding(query)
 
 if __name__ == "__main__":
     create_and_save_embeddings() 

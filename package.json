@@ -1,4 +1,12 @@
 {
+  "name": "hyundai-chatbot",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "install-all": "cd frontend && npm install && cd ../backend && pip install -r requirements.txt"
+  },
   "dependencies": {
     "lottie-react": "^2.4.1"
   },

@@ -71,6 +71,7 @@ body {
   flex-direction: column;
   height: 80vh;
   max-height: 800px;
+  overflow: visible;
 }
 .chat-header-row {
   display: flex;
@@ -507,4 +508,99 @@ body {
   font-size: 15px;
   margin: 16px 0;
   text-align: center;
+}
+
+.chat-input-outer {
+  display: flex;
+  flex-direction: column;
+  padding-top: 8px;
+  margin-top: 0;
+}
+
+/* 감정 격화 및 에스컬레이션 관련 스타일 추가 */
+.session-termination-warning {
+  background: #ffe6e6;
+  border: 2px solid #ff6b6b;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+  font-size: 14px;
+  color: #c53030;
+  font-weight: 600;
+  animation: urgentPulse 1.5s infinite;
+}
+
+.session-termination-warning .contact-info {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ff9999;
+  font-size: 13px;
+  font-weight: normal;
+  line-height: 1.5;
+}
+
+.session-termination-warning .contact-info div {
+  margin-bottom: 6px;
+  background: #fff5f5;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border-left: 3px solid #ff6b6b;
+}
+
+@keyframes urgentPulse {
+  0%, 100% { 
+    box-shadow: 0 0 0 rgba(255, 107, 107, 0.4);
+  }
+  50% { 
+    box-shadow: 0 0 0 8px rgba(255, 107, 107, 0.1);
+  }
+}
+
+.intervention-notice {
+  background: #e8f4fd;
+  border: 1px solid #b3d9ff;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #1565c0;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.intervention-notice.cooling_down {
+  background: #f0f9ff;
+  border-color: #7dd3fc;
+  color: #0369a1;
+}
+
+.intervention-notice.de_escalation {
+  background: #ecfdf5;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.intervention-notice.empathy_boost {
+  background: #fdf2f8;
+  border-color: #f9a8d4;
+  color: #be185d;
+}
+
+/* 모바일 대응 */
+@media (max-width: 600px) {
+  .session-termination-warning {
+    font-size: 13px;
+    padding: 12px;
+  }
+  
+  .session-termination-warning .contact-info {
+    font-size: 12px;
+  }
+  
+  .intervention-notice {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
 }

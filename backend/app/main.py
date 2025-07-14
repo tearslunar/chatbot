@@ -24,6 +24,7 @@ except ImportError:
 # 로컬 모듈 import
 from .config.settings import settings
 from .middleware.security import setup_middleware
+from .middleware.exception_handler import setup_exception_handlers
 from .routers import chat, persona, insurance
 from .sentiment.advanced import emotion_router
 from .utils.chat import llm_router
@@ -52,6 +53,9 @@ app = FastAPI(
 
 # 미들웨어 설정
 setup_middleware(app)
+
+# 예외 핸들러 설정
+setup_exception_handlers(app)
 
 # 라우터 등록
 app.include_router(chat.router)
