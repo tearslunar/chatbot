@@ -34,60 +34,36 @@ function EmotionIndicator({ emotion, compact = false }) {
   const confidence = emotion.confidence || 0;
   const intensity = emotion.intensity || 0;
 
-  // 신뢰도를 백분율로 변환
-  const confidencePercent = Math.round(confidence * 100);
-  
-  // 강도에 따른 크기 조정
-  const sizeMultiplier = compact ? 0.8 : (1 + intensity * 0.3);
-  
-  // 신뢰도에 따른 투명도 조정
-  const opacity = Math.max(0.5, confidence);
-
+  // compact 모드일 때 크기 고정, 투명도/흐림 제거
   const style = {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: compact ? '4px' : '8px',
-    padding: compact ? '4px 8px' : '8px 12px',
+    gap: '4px',
+    padding: '2px 6px',
+    borderRadius: '12px',
+    fontSize: '13px',
+    fontWeight: '500',
+    marginLeft: '8px',
+    whiteSpace: 'nowrap',
     backgroundColor: config.bgColor,
     color: config.color,
-    borderRadius: compact ? '12px' : '16px',
-    fontSize: compact ? '12px' : '14px',
-    fontWeight: '500',
     border: `1px solid ${config.color}20`,
-    opacity: opacity,
-    transform: `scale(${sizeMultiplier})`,
-    transition: 'all 0.3s ease'
+    opacity: 1,
+    filter: 'none',
+    minHeight: '28px',
+    minWidth: '28px',
+    height: '28px',
+    lineHeight: '24px',
   };
-
   const emojiStyle = {
-    fontSize: compact ? '14px' : '18px',
-    marginRight: compact ? '2px' : '4px'
+    fontSize: '20px',
+    marginRight: '4px',
+    lineHeight: '24px',
   };
-
   return (
-    <div className={`emotion-indicator ${compact ? 'compact' : ''}`} style={style}>
+    <div className={`emotion-indicator compact`} style={style}>
       <span style={emojiStyle}>{config.emoji}</span>
-      <span className="emotion-text">
-        {emotion.emotion}
-        {!compact && confidencePercent >= 70 && (
-          <span className="confidence"> ({confidencePercent}%)</span>
-        )}
-      </span>
-      
-      {!compact && intensity > 0 && (
-        <div className="intensity-bar">
-          <div 
-            className="intensity-fill"
-            style={{
-              width: `${intensity * 100}%`,
-              height: '3px',
-              backgroundColor: config.color,
-              borderRadius: '2px',
-              marginTop: '2px'
-            }}
-          />
-        </div>
-      )}
+      <span className="emotion-text">{emotion.emotion}</span>
     </div>
   );
 }
