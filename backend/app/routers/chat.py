@@ -11,7 +11,7 @@ import logging
 import random
 
 from ..sentiment.advanced import emotion_analyzer
-from ..utils.chat import get_potensdot_answer, extract_insurance_entities
+from ..utils.chat import get_potensdot_answer_with_fallback, extract_insurance_entities
 from ..utils.emotion_response import emotion_response
 from ..rag.faq_rag import search_faqs
 from ..rag.hybrid_rag import search_hybrid
@@ -104,14 +104,13 @@ async def chat_endpoint(req: ChatRequest):
         
         # 5. 메인 AI 응답 생성
         try:
-            ai_response = await get_potensdot_answer(
-                message=req.message,
-                model=req.model,
+            ai_response = get_potensdot_answer_with_fallback(
+                user_message=req.message,
+                model_name=req.model,
                 history=req.history or [],
                 rag_results=rag_results,
-                emotion=emotion_result,
-                entities=entities,
-                session_id=req.session_id
+                emotion_data=emotion_result,
+                persona_info=entities
             )
             logger.info("AI 응답 생성 완료")
         except Exception as e:

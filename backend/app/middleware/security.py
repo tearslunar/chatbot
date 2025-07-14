@@ -153,12 +153,12 @@ def setup_middleware(app):
     # 보안 미들웨어 추가
     app.add_middleware(SecurityHeadersMiddleware)
     
-    # 신뢰할 수 있는 호스트 설정 (프로덕션)
-    if settings.is_production:
-        app.add_middleware(
-            TrustedHostMiddleware,
-            allowed_hosts=settings.trusted_hosts
-        )
+    # 신뢰할 수 있는 호스트 설정 (ngrok 호스트 허용을 위해 임시 비활성화)
+    # if settings.is_production:
+    #     app.add_middleware(
+    #         TrustedHostMiddleware,
+    #         allowed_hosts=settings.trusted_hosts
+    #     )
     
     # 레이트 리미팅 (프로덕션)
     if settings.is_production:
@@ -183,4 +183,4 @@ def setup_middleware(app):
     
     logger.info(f"🔐 미들웨어 설정 완료 (환경: {settings.environment})")
     logger.info(f"   CORS 오리진: {len(settings.cors_origins)}개")
-    logger.info(f"   신뢰 호스트: {len(settings.trusted_hosts)}개") 
+    logger.info(f"   신뢰 호스트: {len(settings.trusted_hosts)}개 (TrustedHostMiddleware 비활성화)") 

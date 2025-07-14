@@ -1,11 +1,12 @@
 """
-Hi-Care AI 챗봇 설정 관리 모듈
-환경변수 및 애플리케이션 설정을 중앙화하여 관리
+애플리케이션 설정 관리
+환경변수를 통한 설정 로드 및 검증
 """
 
 import os
 from typing import List, Optional
-from pydantic import BaseSettings, Field
+from pydantic_settings import BaseSettings
+from pydantic import Field
 from enum import Enum
 
 
@@ -57,7 +58,12 @@ class Settings(BaseSettings):
     
     # 성능 설정
     max_workers: int = Field(default=4, env="MAX_WORKERS")
+    workers: Optional[str] = Field(default=None, env="WORKERS")
     request_timeout: int = Field(default=30, env="REQUEST_TIMEOUT")
+    
+    # 알림 설정
+    webhook_url: Optional[str] = Field(default=None, env="WEBHOOK_URL")
+    notification_email: Optional[str] = Field(default=None, env="NOTIFICATION_EMAIL")
     
     # RAG 설정
     max_rag_results: int = Field(default=5, env="MAX_RAG_RESULTS")
@@ -67,37 +73,45 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        extra = "ignore"  # 정의되지 않은 필드 무시
     
     @property
     def cors_origins(self) -> List[str]:
         """CORS 허용 오리진 목록 반환"""
+        # 기본 허용 오리진 (모든 환경)
+        base_origins = [
+            "https://new-hyundai-chatbot.web.app",
+            "https://new-hyundai-chatbot.firebaseapp.com",
+            "https://new-hi-care-chatbot.web.app",
+            "https://new-hi-care-chatbot.firebaseapp.com",
+            "https://hi-care.com",
+            "https://*.hi-care.com",
+            "https://*.ngrok-free.app",  # ngrok 도메인 허용
+            "https://*.ngrok.io"  # ngrok.io 도메인도 허용
+        ]
+        
         if self.environment == Environment.PRODUCTION:
-            # 프로덕션 환경에서는 엄격한 CORS 정책
-            return [
-                "https://new-hi-care-chatbot.web.app",
-                "https://new-hi-care-chatbot.firebaseapp.com",
-                "https://hi-care.com",
-                "https://*.hi-care.com"
-            ]
+            # 프로덕션 환경에서는 기본 오리진 + 환경변수
+            origins = [origin.strip() for origin in self.allowed_origins.split(",") if origin.strip()]
+            return list(set(base_origins + origins))
         else:
-            # 개발 환경에서는 유연한 CORS 정책
+            # 개발 환경에서는 더 유연한 CORS 정책
             origins = [origin.strip() for origin in self.allowed_origins.split(",") if origin.strip()]
             if not origins:
                 origins = [
                     "http://localhost:3000",
                     "http://localhost:5173",
-                    "https://new-hi-care-chatbot.web.app",
-                    "https://new-hi-care-chatbot.firebaseapp.com",
+                    "http://localhost:8080",
                     "https://218457e5970e.ngrok-free.app"
                 ]
-            return origins
+            return list(set(base_origins + origins))
     
     @property
     def trusted_hosts(self) -> List[str]:
         """신뢰할 수 있는 호스트 목록"""
         if self.environment == Environment.PRODUCTION:
-            return ["hi-care.com", "*.hi-care.com"]
-        return ["*"]  # 개발 환경에서는 모든 호스트 허용
+            return ["hi-care.com", "*.hi-care.com", "*.ngrok-free.app", "*.ngrok.io"]
+        return ["*", "localhost", "127.0.0.1", "*.ngrok-free.app", "*.ngrok.io"]  # 개발 환경에서는 모든 호스트 허용
     
     @property
     def is_production(self) -> bool:

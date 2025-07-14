@@ -1,6 +1,6 @@
 from typing import List, Dict, Tuple
-from backend.app.rag.faq_rag import search_faqs
-from backend.app.rag.terms_rag import search_terms
+from .faq_rag import search_faqs
+from .terms_rag import search_terms
 
 def normalize_scores(results: List[Dict], source_type: str) -> List[Dict]:
     """점수 정규화 및 소스 타입 추가"""

@@ -7,7 +7,7 @@ pytest-cov==4.1.0
 pytest-mock==3.12.0
 pytest-xdist==3.5.0  # 병렬 테스트
 pytest-html==4.1.1   # HTML 테스트 리포트
-httpx-mock==0.11.0   # HTTP 요청 모킹
+pytest-httpx==0.27.0  # HTTP 요청 모킹 (httpx-mock 대체)
 
 # 코드 품질 및 포맷팅
 black==23.12.1

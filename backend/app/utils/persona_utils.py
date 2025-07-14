@@ -34,11 +34,15 @@ class PersonaManager:
             self.df = pd.DataFrame()
 
     def list_personas(self, keyword=None, limit=100):
-        df = self.df
-        if keyword:
-            mask = df.apply(lambda row: keyword in str(row.values), axis=1)
-            df = df[mask]
-        return df.head(limit).to_dict(orient='records')
+        try:
+            df = self.df
+            if keyword:
+                mask = df.apply(lambda row: keyword in str(row.values), axis=1)
+                df = df[mask]
+            return df.head(limit).to_dict(orient='records')
+        except Exception as e:
+            print(f"페르소나 목록 조회 오류: {e}")
+            return []
 
     def get_persona_by_id(self, persona_id):
         row = self.df[self.df['ID'] == persona_id]

@@ -1,8 +1,8 @@
 from typing import List, Dict, Tuple, Optional
-from backend.app.rag.hybrid_rag import search_hybrid, merge_and_rank_results
-from backend.app.rag.conversation_flow import ConversationFlowAnalyzer, ContextAwareQueryBuilder
-from backend.app.rag.faq_rag import search_faqs
-from backend.app.rag.terms_rag import search_terms
+from .hybrid_rag import search_hybrid, merge_and_rank_results
+from .conversation_flow import ConversationFlowAnalyzer, ContextAwareQueryBuilder
+from .faq_rag import search_faqs
+from .terms_rag import search_terms
 import time
 
 class EnhancedHybridRAG:

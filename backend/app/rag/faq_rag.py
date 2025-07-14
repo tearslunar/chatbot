@@ -6,6 +6,10 @@ import os
 import numpy as np
 from typing import List, Dict
 import faiss
+import torch
+import transformers
+import packaging
+print(f"[버전 체크] torch: {torch.__version__}, transformers: {transformers.__version__}, packaging: {packaging.__version__}")
 
 # 파일 경로
 FAQ_JSON_PATH = os.path.join(os.path.dirname(__file__), 'hi_faq.json')
@@ -19,7 +23,6 @@ def load_faq_data():
 # 2. 임베딩 생성/저장/모델 로딩 (운영 서버에서는 사용하지 않음)
 def get_model():
     from sentence_transformers import SentenceTransformer
-    import torch
     # GPU 메모리 부족 시 CPU 사용 강제
     device = 'cpu' if not torch.cuda.is_available() or torch.cuda.get_device_properties(0).total_memory < 2000000000 else 'cuda'
     return SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', device=device)

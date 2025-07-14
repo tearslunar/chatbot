@@ -6,12 +6,20 @@ Hi-Care AI 챗봇 메인 애플리케이션
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Query
 from fastapi.responses import JSONResponse
-from mangum import Mangum
 import logging
 import sys
 import os
+
+# AWS Lambda용 mangum은 조건부 import (로컬 개발에서는 선택사항)
+try:
+    from mangum import Mangum
+    MANGUM_AVAILABLE = True
+except ImportError:
+    MANGUM_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.warning("⚠️ mangum 모듈을 찾을 수 없습니다. AWS Lambda 배포가 필요한 경우 'pip install mangum'을 실행하세요.")
 
 # 로컬 모듈 import
 from .config.settings import settings
@@ -52,8 +60,39 @@ app.include_router(insurance.router)
 app.include_router(emotion_router)
 app.include_router(llm_router)
 
+# 페르소나 목록 API (기존 호환성 유지)
+@app.get("/persona-list")
+def persona_list(keyword: str = Query(None, description="검색 키워드"), limit: int = 100):
+    """페르소나 목록 조회 API (키워드 검색 지원)"""
+    try:
+        from .utils.persona_utils import persona_manager
+        personas = persona_manager.list_personas(keyword, limit)
+        
+        logger.info(f"페르소나 목록 조회: 키워드='{keyword}', 결과={len(personas)}개")
+        
+        return {
+            "success": True,
+            "personas": personas,
+            "total": len(personas),
+            "keyword": keyword
+        }
+        
+    except Exception as e:
+        logger.error(f"페르소나 목록 조회 오류: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": "페르소나 목록 조회 중 오류가 발생했습니다.",
+                "detail": str(e)
+            }
+        )
+
 # AWS Lambda 핸들러 (서버리스 배포용)
-handler = Mangum(app)
+if MANGUM_AVAILABLE:
+    handler = Mangum(app)
+else:
+    handler = None  # 로컬 개발 환경에서는 필요 없음
 
 
 @app.get("/")

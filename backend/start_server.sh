@@ -42,11 +42,42 @@ echo -e "${GREEN}✅ 가상환경 활성화 완료${NC}"
 
 # 2. 필요 패키지 설치
 echo "📚 패키지 의존성 확인 중..."
-if [ -f "requirements.txt" ]; then
-    pip install -r requirements.txt
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REQUIREMENTS_FILE="$SCRIPT_DIR/requirements.txt"
+
+if [ -f "$REQUIREMENTS_FILE" ]; then
+    echo "📦 패키지 설치 중... ($REQUIREMENTS_FILE)"
+    pip install -r "$REQUIREMENTS_FILE"
+    
+    # 개발용 의존성도 설치 (선택사항)
+    DEV_REQUIREMENTS="$SCRIPT_DIR/requirements-dev.txt"
+    if [ -f "$DEV_REQUIREMENTS" ]; then
+        echo "🛠️ 개발용 의존성 설치 중..."
+        pip install -r "$DEV_REQUIREMENTS"
+    fi
+    
     echo -e "${GREEN}✅ 패키지 설치 완료${NC}"
+    
+    # 2-1. 핵심 의존성 검증
+    echo "🔍 핵심 의존성 검증 중..."
+    python -c "import faiss; print('✅ FAISS 로드 성공')" 2>/dev/null || {
+        echo -e "${RED}❌ FAISS 모듈 로드 실패${NC}"
+        echo -e "${YELLOW}💡 해결 방법: pip install faiss-cpu==1.7.4${NC}"
+        exit 1
+    }
+    python -c "import torch; print('✅ PyTorch 로드 성공')" 2>/dev/null || {
+        echo -e "${RED}❌ PyTorch 모듈 로드 실패${NC}"
+        echo -e "${YELLOW}💡 해결 방법: pip install torch${NC}"
+        exit 1
+    }
+    echo -e "${GREEN}✅ 핵심 의존성 검증 완료${NC}"
 else
-    echo -e "${YELLOW}⚠️ requirements.txt 파일을 찾을 수 없습니다${NC}"
+    echo -e "${RED}❌ requirements.txt 파일을 찾을 수 없습니다${NC}"
+    echo "   찾은 경로: $REQUIREMENTS_FILE"
+    echo "   현재 디렉토리: $(pwd)"
+    echo "   디렉토리 내용:"
+    ls -la "$SCRIPT_DIR" | head -10
+    exit 1
 fi
 
 # 3. 환경변수 파일 확인
@@ -80,10 +111,16 @@ fi
 
 # 5. 서버 시작
 echo "🌐 FastAPI 서버 시작 중..."
-echo -e "${GREEN}서버 URL: http://localhost:8000${NC}"
-echo -e "${GREEN}API 문서: http://localhost:8000/docs${NC}"
+echo -e "${GREEN}서버 URL: http://localhost:8888${NC}"
+echo -e "${GREEN}API 문서: http://localhost:8888/docs${NC}"
 echo -e "${YELLOW}서버를 중지하려면 Ctrl+C를 누르세요${NC}"
 echo ""
 
+# 현재 디렉토리 확인 및 Python 경로 설정
+echo "📁 현재 디렉토리: $(pwd)"
+echo "🐍 Python 경로: $(which python)"
+
 # 개발 모드로 서버 시작 (단일 워커)
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload 
+# PYTHONPATH 설정으로 app 모듈 인식 보장
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+uvicorn app.main:app --host 0.0.0.0 --port 8888 --reload --workers 4 

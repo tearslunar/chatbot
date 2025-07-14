@@ -82,7 +82,7 @@ def build_rag_prompt(user_message: str, rag_results: List[Dict] = None) -> str:
     
     if rag_results and len(rag_results) > 0:
         # 이중 검색 결과 포맷팅 (FAQ + 약관)
-        from backend.app.rag.hybrid_rag import format_results_for_prompt
+        from ..rag.hybrid_rag import format_results_for_prompt
         rag_text = format_results_for_prompt(rag_results)
         prompt += f"아래는 현대해상 FAQ 및 약관 정보입니다.\n{rag_text}\n\n사용자 질문: {user_message}\n위 정보를 참고하여 답변해 주세요."
     else:
