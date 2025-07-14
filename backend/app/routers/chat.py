@@ -107,10 +107,11 @@ async def chat_endpoint(req: ChatRequest):
             ai_response = get_potensdot_answer_with_fallback(
                 user_message=req.message,
                 model_name=req.model,
-                history=req.history or [],
                 rag_results=rag_results,
                 emotion_data=emotion_result,
-                persona_info=entities
+                history=req.history or [],
+                persona_info=entities,  # 엔터티를 페르소나 정보로 사용
+                search_metadata={"search_strategy": search_strategy}
             )
             logger.info("AI 응답 생성 완료")
         except Exception as e:

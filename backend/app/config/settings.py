@@ -74,6 +74,12 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
         case_sensitive = False
         extra = "ignore"  # 정의되지 않은 필드 무시
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+        "extra": "allow"  # 추가 필드 허용
+    }
     
     @property
     def cors_origins(self) -> List[str]:

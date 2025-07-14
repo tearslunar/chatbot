@@ -19,7 +19,7 @@ import QuickMenu from '../components/QuickMenu';
 // import faqData from '../assets/hi_faq.json'; // 미사용 import 주석 처리
 
 // 설정 상수
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const HISTORY_KEY = 'chat_history';
 
 const MODEL_OPTIONS = [
