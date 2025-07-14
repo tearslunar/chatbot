@@ -1,65 +1,22 @@
-# 🚀 Hi-Care AI 챗봇 핵심 의존성
-
-# FastAPI 및 웹 프레임워크
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic[email]==2.5.0
-pydantic-settings==2.1.0
-
-# AI/ML 라이브러리
-sentence-transformers==2.2.2
-transformers==4.30.2
-packaging==21.3
-numpy>=1.25.0,<2.0.0
-scikit-learn==1.3.2
-torch>=2.0.0,<3.0.0  # AI 모델용
-faiss-cpu==1.7.4  # FAISS 벡터 검색 엔진
-pandas>=1.5.0,<2.0.0  # 데이터 처리
-
-# 환경 및 설정 관리
-python-dotenv==1.0.0
-
-# HTTP 클라이언트 및 네트워킹
-httpx==0.25.2
-requests==2.31.0
-aiohttp==3.9.1
-
-# 보안 및 인증
-cryptography==41.0.7
-passlib[bcrypt]==1.7.4
-python-jose[cryptography]==3.3.0
-bcrypt==4.1.2
-
-# 데이터 검증 및 처리
-marshmallow==3.20.2
-email-validator==2.1.0
-phonenumbers==8.13.27
-
-# 로깅 및 모니터링
-structlog==23.2.0
-python-json-logger==2.0.7
-
-# 캐싱 및 성능
-redis==5.0.1
-cachetools==5.3.2
-
-# 서버리스 배포
-mangum==0.17.0
-
-# 웹 및 파일 처리
-python-multipart==0.0.6
-Pillow==10.1.0
-aiofiles==23.2.1
-
-# 보안 스캐닝 (개발용)
-safety==2.3.5  # 취약점 스캐닝
-bandit==1.7.5  # 보안 린터
-
-# HuggingFace 호환성
-huggingface-hub==0.16.4
-
-# 개발용 의존성 포함 (선택사항)
-# -r requirements-dev.txt
-
-# 프로덕션용 의존성 포함 (선택사항)  
-# -r requirements-prod.txt
+GDAL==3.11.0
+gpg==1.24.2
+openvino==2025.0.0
+openvino-telemetry==2024.1.0
+packaging==24.1
+PyQt3D==5.15.7
+PyQt5==5.15.11
+PyQt5_sip==12.17.0
+PyQt6==6.9.0
+PyQt6-3D==6.9.0
+PyQt6-Charts==6.9.0
+PyQt6-DataVisualization==6.9.0
+PyQt6-NetworkAuth==6.9.0
+PyQt6-WebEngine==6.9.0
+PyQt6_sip==13.10.0
+PyQtChart==5.15.7
+PyQtDataVisualization==5.15.6
+PyQtNetworkAuth==5.15.6
+PyQtPurchasing==5.15.6
+PyQtWebEngine==5.15.7
+TBB==0.2
+wheel @ file:///opt/homebrew/Cellar/python%403.13/3.13.2/libexec/wheel-0.45.1-py3-none-any.whl#sha256=b9235939e2096903717cb6bfc132267f8a7e46deb2ec3ef9c5e234ea301795d0
