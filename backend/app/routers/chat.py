@@ -3,12 +3,13 @@
 AI 챗봇과의 대화 처리, 감정 분석, RAG 검색 통합
 """
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel, validator
 from typing import List, Dict, Optional
 import time
 import logging
 import random
+from sqlalchemy.orm import Session
 
 from ..sentiment.advanced import emotion_analyzer
 from ..utils.chat import get_potensdot_answer_with_fallback, extract_insurance_entities
@@ -16,10 +17,22 @@ from ..utils.emotion_response import emotion_response
 from ..rag.faq_rag import search_faqs
 from ..rag.hybrid_rag import search_hybrid
 from ..config.settings import settings
+from ..exceptions import (
+    ValidationError, 
+    EmotionAnalysisError, 
+    RAGSearchError, 
+    APIConnectionError,
+    SessionError
+)
+from ..database import get_db
+from ..repositories.session_repository import SessionRepository, MessageRepository
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+
+session_repository = SessionRepository()
+message_repository = MessageRepository()
 
 
 class ChatRequest(BaseModel):
@@ -28,6 +41,32 @@ class ChatRequest(BaseModel):
     model: str = "claude-3.7-sonnet"
     history: Optional[List[Dict]] = None
     session_id: Optional[str] = None
+    
+    @validator('message')
+    def validate_message(cls, v):
+        if not v or len(v.strip()) == 0:
+            raise ValidationError('메시지가 비어있습니다.', field='message')
+        if len(v) > 1000:
+            raise ValidationError('메시지가 너무 깁니다. (최대 1000자)', field='message')
+        return v.strip()
+    
+    @validator('model')
+    def validate_model(cls, v):
+        allowed_models = [
+            "claude-3.7-sonnet", 
+            "claude-4.0-sonnet", 
+            "claude-3.5-haiku", 
+            "claude-3.7-sonnet-extended"
+        ]
+        if v not in allowed_models:
+            raise ValidationError(f'지원하지 않는 모델입니다: {v}', field='model')
+        return v
+    
+    @validator('session_id')
+    def validate_session_id(cls, v):
+        if v and (len(v) < 10 or len(v) > 100):
+            raise ValidationError('세션 ID 형식이 올바르지 않습니다.', field='session_id')
+        return v
 
 
 class ChatResponse(BaseModel):
@@ -41,6 +80,10 @@ class ChatResponse(BaseModel):
     search_strategy: Optional[str] = None
     processing_time: Optional[float] = None
     session_ended: bool = False
+    # 감정 격화 관련 필드 추가
+    escalation_analysis: Optional[Dict] = None
+    intervention_type: Optional[str] = None
+    requires_human_support: bool = False
 
 
 class RatingSubmitRequest(BaseModel):
@@ -49,122 +92,191 @@ class RatingSubmitRequest(BaseModel):
     rating: int
     feedback: str = ""
     timestamp: str
+    
+    @validator('rating')
+    def validate_rating(cls, v):
+        if not 1 <= v <= 5:
+            raise ValidationError('평점은 1-5 사이의 값이어야 합니다.', field='rating')
+        return v
+    
+    @validator('feedback')
+    def validate_feedback(cls, v):
+        if len(v) > 500:
+            raise ValidationError('피드백은 500자를 초과할 수 없습니다.', field='feedback')
+        return v
+    
+    @validator('session_id')
+    def validate_session_id(cls, v):
+        if not v or len(v) < 10:
+            raise ValidationError('올바른 세션 ID가 필요합니다.', field='session_id')
+        return v
 
 
 @router.post("/message", response_model=ChatResponse)
-async def chat_endpoint(req: ChatRequest):
+async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db)):
     """메인 채팅 엔드포인트"""
     start_time = time.time()
     
+    logger.info(f"채팅 요청: 세션={req.session_id}, 메시지 길이={len(req.message)}")
+    
+    # 2. 감정 분석
+    emotion_result = None
     try:
-        logger.info(f"채팅 요청: 세션={req.session_id}, 메시지 길이={len(req.message)}")
-        
-        # 1. 기본 유효성 검사
-        if not req.message or len(req.message.strip()) == 0:
-            raise HTTPException(status_code=400, detail="메시지가 비어있습니다.")
-        
-        if len(req.message) > 1000:
-            raise HTTPException(status_code=400, detail="메시지가 너무 깁니다. (최대 1000자)")
-        
-        # 2. 감정 분석
-        emotion_result = None
-        try:
-            emotion_result = emotion_analyzer.analyze_emotion(req.message)
-            logger.info(f"감정 분석 완료: {emotion_result.get('emotion', 'unknown')}")
-        except Exception as e:
-            logger.warning(f"감정 분석 실패: {str(e)}")
-            emotion_result = {"emotion": "중립", "confidence": 0.5}
-        
-        # 3. 보험 엔터티 추출
-        entities = None
-        try:
-            entities = extract_insurance_entities(req.message)
-            logger.info(f"엔터티 추출 완료: {len(entities) if entities else 0}개")
-        except Exception as e:
-            logger.warning(f"엔터티 추출 실패: {str(e)}")
-            entities = {}
-        
-        # 4. RAG 검색 (하이브리드)
-        rag_results = []
-        search_strategy = "none"
-        try:
-            rag_results = search_hybrid(req.message, limit=settings.max_rag_results)
-            search_strategy = "hybrid"
-            logger.info(f"RAG 검색 완료: {len(rag_results)}개 결과")
-        except Exception as e:
-            logger.warning(f"RAG 검색 실패: {str(e)}")
-            # 폴백: FAQ 검색만 시도
-            try:
-                rag_results = search_faqs(req.message, limit=3)
-                search_strategy = "faq_only"
-                logger.info(f"폴백 FAQ 검색 완료: {len(rag_results)}개 결과")
-            except Exception as e2:
-                logger.error(f"폴백 검색도 실패: {str(e2)}")
-                rag_results = []
-        
-        # 5. 메인 AI 응답 생성
-        try:
-            ai_response = get_potensdot_answer_with_fallback(
-                user_message=req.message,
-                model_name=req.model,
-                rag_results=rag_results,
-                emotion_data=emotion_result,
-                history=req.history or [],
-                persona_info=entities,  # 엔터티를 페르소나 정보로 사용
-                search_metadata={"search_strategy": search_strategy}
-            )
-            logger.info("AI 응답 생성 완료")
-        except Exception as e:
-            logger.error(f"AI 응답 생성 실패: {str(e)}")
-            # 폴백 응답
-            ai_response = _generate_fallback_response(req.message, emotion_result)
-        
-        # 6. 추천 FAQ 생성
-        recommended_faqs = []
-        if rag_results:
-            recommended_faqs = [
-                {
-                    "question": result.get("question", ""),
-                    "score": result.get("score", 0.0),
-                    "category": result.get("category", "일반")
-                }
-                for result in rag_results[:3]
-                if result.get("score", 0) > 0.3
-            ]
-        
-        # 7. 에스컬레이션 필요성 판단
-        escalation_needed = _check_escalation_needed(emotion_result, entities, req.message)
-        
-        # 8. 세션 종료 조건 체크
-        session_ended = _check_session_end_conditions(req.message, emotion_result)
-        
-        # 9. 응답 구성
-        processing_time = time.time() - start_time
-        
-        response = ChatResponse(
-            answer=ai_response,
-            entities=entities,
-            emotion=emotion_result,
-            escalation_needed=escalation_needed,
-            recommended_faqs=recommended_faqs,
-            conversation_flow={
-                "stage": _determine_conversation_stage(req.message, req.history),
-                "next_actions": _suggest_next_actions(entities, emotion_result)
-            },
-            search_strategy=search_strategy,
-            processing_time=processing_time,
-            session_ended=session_ended
-        )
-        
-        logger.info(f"채팅 응답 완료: 처리시간={processing_time:.3f}초")
-        return response
-        
-    except HTTPException:
-        raise
+        emotion_result = emotion_analyzer.analyze_emotion(req.message)
+        logger.info(f"감정 분석 완료: {emotion_result.get('emotion', 'unknown')}")
     except Exception as e:
-        processing_time = time.time() - start_time
-        logger.error(f"채팅 처리 중 오류: {str(e)} (처리시간: {processing_time:.3f}초)")
-        raise HTTPException(status_code=500, detail="채팅 처리 중 오류가 발생했습니다.")
+        logger.warning(f"감정 분석 실패: {str(e)}")
+        # 감정 분석 실패 시 기본값 사용 (서비스 계속 진행)
+        emotion_result = {"emotion": "중립", "confidence": 0.5}
+        
+    # 3. 보험 엔터티 추출
+    entities = None
+    try:
+        entities = extract_insurance_entities(req.message)
+        logger.info(f"엔터티 추출 완료: {len(entities) if entities else 0}개")
+    except Exception as e:
+        logger.warning(f"엔터티 추출 실패: {str(e)}")
+        entities = {}
+    
+    # 4. RAG 검색 (하이브리드)
+    rag_results = []
+    search_strategy = "none"
+    try:
+        rag_results = search_hybrid(req.message, max_results=settings.max_rag_results)
+        search_strategy = "hybrid"
+        logger.info(f"RAG 검색 완료: {len(rag_results)}개 결과")
+    except Exception as e:
+        logger.warning(f"RAG 검색 실패: {str(e)}")
+        # 폴백: FAQ 검색만 시도
+        try:
+            rag_results = search_faqs(req.message, top_n=3)
+            search_strategy = "faq_only"
+            logger.info(f"폴백 FAQ 검색 완료: {len(rag_results)}개 결과")
+        except Exception as e2:
+            logger.error(f"폴백 검색도 실패: {str(e2)}")
+            # RAG 검색 완전 실패 시에도 서비스 계속 진행
+            rag_results = []
+            search_strategy = "failed"
+        
+    # 5. 메인 AI 응답 생성
+    try:
+        ai_response = get_potensdot_answer_with_fallback(
+            user_message=req.message,
+            model_name=req.model,
+            rag_results=rag_results,
+            emotion_data=emotion_result,
+            history=req.history or [],
+            persona_info=entities,  # 엔터티를 페르소나 정보로 사용
+            search_metadata={"search_strategy": search_strategy}
+        )
+        logger.info("AI 응답 생성 완료")
+    except Exception as e:
+        logger.error(f"AI 응답 생성 실패: {str(e)}")
+        # AI 응답 생성 실패 시 폴백 응답
+        ai_response = _generate_fallback_response(req.message, emotion_result)
+    
+    # 6. 추천 FAQ 생성
+    recommended_faqs = []
+    if rag_results:
+        recommended_faqs = [
+            {
+                "question": result.get("question", ""),
+                "score": result.get("score", 0.0),
+                "category": result.get("category", "일반")
+            }
+            for result in rag_results[:3]
+            if result.get("score", 0) > 0.3
+        ]
+    
+    # 7. 감정 격화 및 개입 필요성 종합 판단
+    escalation_analysis = emotion_analyzer.should_terminate_session()
+    escalation_needed = (
+        escalation_analysis.get("should_terminate", False) or 
+        escalation_analysis.get("intervention_needed", False) or
+        _check_escalation_needed(emotion_result, entities, req.message)
+    )
+    
+    # 8. 감정 기반 개입 메시지 처리
+    intervention_message = escalation_analysis.get("intervention_message", "")
+    if intervention_message:
+        # 개입 메시지가 있는 경우 AI 응답에 우선적으로 적용
+        ai_response = intervention_message + "\n\n" + ai_response
+    
+    # 9. 세션 종료 조건 체크
+    session_ended = (
+        escalation_analysis.get("should_terminate", False) or 
+        _check_session_end_conditions(req.message, emotion_result)
+    )
+    
+    # 10. 응답 구성
+    processing_time = time.time() - start_time
+    
+    response = ChatResponse(
+        answer=ai_response,
+        entities=entities,
+        emotion=emotion_result,
+        escalation_needed=escalation_needed,
+        recommended_faqs=recommended_faqs,
+        conversation_flow={
+            "stage": _determine_conversation_stage(req.message, req.history),
+            "next_actions": _suggest_next_actions(entities, emotion_result)
+        },
+        # 감정 격화 관련 정보 추가
+        escalation_analysis=escalation_analysis.get("escalation_data", {}),
+        intervention_type=escalation_analysis.get("escalation_data", {}).get("intervention_type", "none"),
+        requires_human_support=escalation_analysis.get("should_terminate", False),
+        search_strategy=search_strategy,
+        processing_time=processing_time,
+        session_ended=session_ended
+    )
+    
+    logger.info(f"채팅 응답 완료: 처리시간={processing_time:.3f}초")
+    
+    # DB 저장 로직 (실패해도 서비스 영향 X)
+    try:
+        # 1. 세션 생성/업데이트
+        session_obj = session_repository.get_by_session_id(db, session_id=req.session_id)
+        if not session_obj:
+            # 신규 세션 생성
+            session_obj = session_repository.create(db, obj_in={
+                "session_id": req.session_id,
+                "model_name": req.model,
+                "status": "active",
+                "start_time": time.time(),
+                "total_messages": 1
+            })
+        else:
+            # 메시지 수 증가
+            session_obj.total_messages = (session_obj.total_messages or 0) + 1
+            db.commit()
+        # 2. 사용자 메시지 저장
+        message_repository.create(db, obj_in={
+            "session_id": req.session_id,
+            "role": "user",
+            "content": req.message,
+            "model_used": req.model,
+            "emotion_data": None,
+            "processing_time": None,
+            "rag_results": None,
+            "search_strategy": None
+        })
+        # 3. AI 응답 메시지 저장
+        message_repository.create(db, obj_in={
+            "session_id": req.session_id,
+            "role": "bot",
+            "content": ai_response,
+            "model_used": req.model,
+            "emotion_data": emotion_result,
+            "processing_time": processing_time,
+            "rag_results": rag_results,
+            "search_strategy": search_strategy,
+            "escalation_needed": escalation_needed,
+            "session_ended": session_ended
+        })
+    except Exception as e:
+        logger.warning(f"DB 저장 실패: {str(e)}")
+    
+    return response
 
 
 @router.post("/end-session")
