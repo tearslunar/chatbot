@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './PersonaSelector.css';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -8,13 +8,14 @@ function PersonaSelector({ onPersonaSelect, selectedPersona }) {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const dropdownRef = useRef(null);
 
   const loadPersonas = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (searchKeyword) params.append('keyword', searchKeyword);
-      params.append('limit', '20');
+      params.append('limit', '200');
       
       const res = await fetch(`${API_URL}/persona-list?${params}`, {
         headers: {
@@ -23,7 +24,7 @@ function PersonaSelector({ onPersonaSelect, selectedPersona }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setPersonas(data);
+        setPersonas(data.personas || data);
       }
     } catch (e) {
       console.error('페르소나 목록 로드 실패:', e);
@@ -37,6 +38,20 @@ function PersonaSelector({ onPersonaSelect, selectedPersona }) {
     loadPersonas();
   }, [loadPersonas]);
 
+  // 외부 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
   const handlePersonaSelect = (persona) => {
     onPersonaSelect(persona);
     setIsOpen(false);
@@ -48,7 +63,7 @@ function PersonaSelector({ onPersonaSelect, selectedPersona }) {
   };
 
   return (
-    <div className="persona-selector">
+    <div className="persona-selector" ref={dropdownRef}>
       <button 
         className="persona-selector-toggle"
         onClick={() => setIsOpen(!isOpen)}
