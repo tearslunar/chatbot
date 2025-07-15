@@ -72,6 +72,12 @@ class Settings(BaseSettings):
     max_rag_results: int = Field(default=5, env="MAX_RAG_RESULTS")
     embedding_model: str = Field(default="sentence-transformers/all-MiniLM-L6-v2", env="EMBEDDING_MODEL")
     
+    # GPU 설정
+    use_gpu: bool = Field(default=True, env="USE_GPU")
+    preferred_gpu_name: str = Field(default="RTX 2080 Ti", env="PREFERRED_GPU_NAME")
+    gpu_memory_fraction: float = Field(default=0.8, env="GPU_MEMORY_FRACTION")
+    fallback_to_cpu: bool = Field(default=True, env="FALLBACK_TO_CPU")
+    
     @property
     def is_production(self) -> bool:
         """프로덕션 환경 여부"""

@@ -11,6 +11,18 @@ import transformers
 import packaging
 print(f"[버전 체크] torch: {torch.__version__}, transformers: {transformers.__version__}, packaging: {packaging.__version__}")
 
+# GPU 매니저 import
+try:
+    from ..utils.gpu_manager import get_device, get_gpu_info, clear_gpu_memory
+except ImportError:
+    # GPU 매니저가 없으면 CPU 사용
+    def get_device():
+        return 'cpu'
+    def get_gpu_info():
+        return {'device': 'cpu'}
+    def clear_gpu_memory():
+        pass
+
 # 캐싱 시스템 import
 try:
     from ..cache.decorators import cache_result
@@ -33,8 +45,13 @@ def load_faq_data():
 # 2. 임베딩 생성/저장/모델 로딩 (운영 서버에서는 사용하지 않음)
 def get_model():
     from sentence_transformers import SentenceTransformer
-    # GPU 메모리 부족 시 CPU 사용 강제
-    device = 'cpu' if not torch.cuda.is_available() or torch.cuda.get_device_properties(0).total_memory < 2000000000 else 'cuda'
+    # GPU 매니저를 통한 디바이스 선택
+    device = get_device()
+    print(f"[FAQ 모델] 디바이스: {device}")
+    if device != 'cpu':
+        gpu_info = get_gpu_info()
+        print(f"[FAQ 모델] GPU 정보: {gpu_info}")
+    
     return SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', device=device)
 
 def create_and_save_embeddings():

@@ -41,6 +41,14 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+# GPU 정보 로깅
+try:
+    from .utils.gpu_manager import get_gpu_info
+    gpu_info = get_gpu_info()
+    logger.info(f"🚀 GPU 설정: {gpu_info}")
+except ImportError:
+    logger.info("🚀 GPU 매니저를 찾을 수 없습니다. CPU 모드로 실행됩니다.")
+
 # FastAPI 앱 생성
 app = FastAPI(
     title=settings.app_name,
@@ -63,6 +71,13 @@ app.include_router(persona.router)
 app.include_router(insurance.router)
 app.include_router(emotion_router)
 app.include_router(llm_router)
+
+# GPU 상태 라우터 추가
+try:
+    from .routers.gpu_status import router as gpu_router
+    app.include_router(gpu_router)
+except ImportError:
+    logger.warning("GPU 상태 라우터를 찾을 수 없습니다.")
 
 # 페르소나 목록 API (기존 호환성 유지)
 @app.get("/persona-list")

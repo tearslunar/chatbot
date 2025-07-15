@@ -8,6 +8,18 @@ from typing import List, Dict, Tuple
 import faiss
 import glob
 
+# GPU 매니저 import
+try:
+    from ..utils.gpu_manager import get_device, get_gpu_info, clear_gpu_memory
+except ImportError:
+    # GPU 매니저가 없으면 CPU 사용
+    def get_device():
+        return 'cpu'
+    def get_gpu_info():
+        return {'device': 'cpu'}
+    def clear_gpu_memory():
+        pass
+
 # 파일 경로
 TERMS_DIR = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', '현대해상_약관_fixed_txt')
 TERMS_EMBEDDINGS_PATH = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', 'terms_embeddings.pkl')
@@ -96,8 +108,13 @@ def get_model():
     """임베딩 모델 로딩"""
     from sentence_transformers import SentenceTransformer
     import torch
-    # GPU 메모리 부족 시 CPU 사용 강제
-    device = 'cpu' if not torch.cuda.is_available() or torch.cuda.get_device_properties(0).total_memory < 2000000000 else 'cuda'
+    # GPU 매니저를 통한 디바이스 선택
+    device = get_device()
+    print(f"[약관 모델] 디바이스: {device}")
+    if device != 'cpu':
+        gpu_info = get_gpu_info()
+        print(f"[약관 모델] GPU 정보: {gpu_info}")
+    
     return SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', device=device)
 
 def create_and_save_terms_embeddings():
