@@ -146,11 +146,11 @@ function ChatPage() {
         setSuggestedQuestions(data.recommended_faqs.slice(0, 3));
       }
 
-      // 세션 종료 체크
-      if (data.session_ended) {
-        setIsSessionEnded(true);
-        setIsFeedbackModalOpen(true);
-      }
+      // 🚨 자동 세션 종료 비활성화 - session_ended 무시
+      // if (data.session_ended) {
+      //   setIsSessionEnded(true);
+      //   setIsFeedbackModalOpen(true);
+      // }
 
     } catch (error) {
       console.error('[채팅] 메시지 전송 오류:', error);

@@ -3,13 +3,17 @@
 AI 챗봇과의 대화 처리, 감정 분석, RAG 검색 통합
 """
 
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, validator
-from typing import List, Dict, Optional
-import time
+
 import logging
 import random
+import time
+from typing import Dict, List, Optional
+import json  # json 모듈 추가
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, validator
 from sqlalchemy.orm import Session
+
 
 from ..sentiment.advanced import emotion_analyzer
 from ..utils.chat import get_potensdot_answer_with_fallback, extract_insurance_entities
@@ -26,6 +30,7 @@ from ..exceptions import (
 )
 from ..database import get_db
 from ..repositories.session_repository import SessionRepository, MessageRepository
+from ..utils.persona_utils import persona_manager
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +124,21 @@ async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db)):
     
     logger.info(f"채팅 요청: 세션={req.session_id}, 메시지 길이={len(req.message)}")
     
+    # 1. 세션 및 페르소나 정보 조회
+    persona_info = None
+    persona_recommendations = None
+    try:
+        session = session_repository.get_by_session_id(db, session_id=req.session_id)
+        if session and session.persona_id:
+            persona_info = persona_manager.get_persona_by_id(session.persona_id)
+            if persona_info:
+                persona_recommendations = persona_manager.get_personalized_recommendations(persona_info)
+                logger.info(f"페르소나 정보 로드: {persona_info.get('ID', 'unknown')}")
+            else:
+                logger.warning(f"DB에 persona_id {session.persona_id}가 있지만, persona_manager에 해당 페르소나가 없습니다.")
+    except Exception as e:
+        logger.warning(f"페르소나 정보 로드 실패: {str(e)}")
+    
     # 2. 감정 분석
     emotion_result = None
     try:
@@ -138,13 +158,25 @@ async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db)):
         logger.warning(f"엔터티 추출 실패: {str(e)}")
         entities = {}
     
-    # 4. RAG 검색 (하이브리드)
+    # 4. RAG 검색 (페르소나 정보 결합)
     rag_results = []
     search_strategy = "none"
+    search_query = req.message
+
     try:
-        rag_results = search_hybrid(req.message, max_results=settings.max_rag_results)
-        search_strategy = "hybrid"
-        logger.info(f"RAG 검색 완료: {len(rag_results)}개 결과")
+        if persona_info:
+            # 페르소나 정보를 바탕으로 검색 쿼리 보강
+            persona_keywords = f"{persona_info.get('연령대', '')} {persona_info.get('직업', '')} {persona_info.get('가족 구성', '')}"
+            if "추천" in req.message or "상품" in req.message:
+                search_query = f"{persona_keywords}에게 적합한 보험 상품 추천"
+                logger.info(f"페르소나 기반 검색 쿼리 생성: {search_query}")
+            else:
+                search_query = f"{req.message} ({persona_keywords} 관련)"
+
+        rag_results = search_hybrid(search_query, max_results=settings.max_rag_results)
+        search_strategy = "persona_hybrid" if persona_info else "hybrid"
+        logger.info(f"RAG 검색 완료 ({search_strategy}): {len(rag_results)}개 결과")
+
     except Exception as e:
         logger.warning(f"RAG 검색 실패: {str(e)}")
         # 폴백: FAQ 검색만 시도
@@ -154,20 +186,29 @@ async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db)):
             logger.info(f"폴백 FAQ 검색 완료: {len(rag_results)}개 결과")
         except Exception as e2:
             logger.error(f"폴백 검색도 실패: {str(e2)}")
-            # RAG 검색 완전 실패 시에도 서비스 계속 진행
             rag_results = []
             search_strategy = "failed"
-        
-    # 5. 메인 AI 응답 생성
+
+    # 5. 메인 AI 응답 생성 (페르소나 정보 활용)
     try:
+        # 페르소나 기반 응답 커스터마이징
+        enhanced_persona_info = entities.copy() if entities else {}
+        if persona_info:
+            enhanced_persona_info.update({
+                "persona_data": persona_info,
+                "recommendations": persona_recommendations,
+                "communication_tone": persona_recommendations.get('communication_tone', 'professional_standard') if persona_recommendations else 'professional_standard',
+                "priority_concerns": persona_recommendations.get('priority_concerns', []) if persona_recommendations else []
+            })
+
         ai_response = get_potensdot_answer_with_fallback(
             user_message=req.message,
             model_name=req.model,
             rag_results=rag_results,
             emotion_data=emotion_result,
             history=req.history or [],
-            persona_info=entities,  # 엔터티를 페르소나 정보로 사용
-            search_metadata={"search_strategy": search_strategy}
+            persona_info=enhanced_persona_info,
+            search_metadata={"search_strategy": search_strategy, "persona_id": persona_info.get('ID') if persona_info else None, "original_query": req.message, "search_query": search_query}
         )
         logger.info("AI 응답 생성 완료")
     except Exception as e:
@@ -188,25 +229,11 @@ async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db)):
             if result.get("score", 0) > 0.3
         ]
     
-    # 7. 감정 격화 및 개입 필요성 종합 판단
-    escalation_analysis = emotion_analyzer.should_terminate_session()
-    escalation_needed = (
-        escalation_analysis.get("should_terminate", False) or 
-        escalation_analysis.get("intervention_needed", False) or
-        _check_escalation_needed(emotion_result, entities, req.message)
-    )
+    # 7. 에스컬레이션 체크 (자동 종료 비활성화)
+    escalation_needed = False  # 자동 에스컬레이션 완전 비활성화
     
-    # 8. 감정 기반 개입 메시지 처리
-    intervention_message = escalation_analysis.get("intervention_message", "")
-    if intervention_message:
-        # 개입 메시지가 있는 경우 AI 응답에 우선적으로 적용
-        ai_response = intervention_message + "\n\n" + ai_response
-    
-    # 9. 세션 종료 조건 체크
-    session_ended = (
-        escalation_analysis.get("should_terminate", False) or 
-        _check_session_end_conditions(req.message, emotion_result)
-    )
+    # 8. 세션 종료 조건 체크 (자동 종료 비활성화)
+    session_ended = False  # 자동 세션 종료 완전 비활성화
     
     # 10. 응답 구성
     processing_time = time.time() - start_time
@@ -222,9 +249,9 @@ async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db)):
             "next_actions": _suggest_next_actions(entities, emotion_result)
         },
         # 감정 격화 관련 정보 추가
-        escalation_analysis=escalation_analysis.get("escalation_data", {}),
-        intervention_type=escalation_analysis.get("escalation_data", {}).get("intervention_type", "none"),
-        requires_human_support=escalation_analysis.get("should_terminate", False),
+        escalation_analysis={},
+        intervention_type="none",
+        requires_human_support=False,
         search_strategy=search_strategy,
         processing_time=processing_time,
         session_ended=session_ended
@@ -266,9 +293,9 @@ async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db)):
             "role": "bot",
             "content": ai_response,
             "model_used": req.model,
-            "emotion_data": emotion_result,
+            "emotion_data": json.dumps(emotion_result) if emotion_result else None,
             "processing_time": processing_time,
-            "rag_results": rag_results,
+            "rag_results": json.dumps(rag_results) if rag_results else None,
             "search_strategy": search_strategy,
             "escalation_needed": escalation_needed,
             "session_ended": session_ended

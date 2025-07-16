@@ -12,6 +12,7 @@ import MessageList from './components/MessageList';
 import ChatInput from './components/ChatInput';
 import ModalManager from './components/ModalManager';
 import QuickMenu from './components/QuickMenu';
+import InsuranceSubscriptionForm from './components/InsuranceSubscriptionForm'; // 새로 추가
 import PersonaInput from './components/PersonaInput';
 
 // Hooks
@@ -111,56 +112,61 @@ function ChatApp() {
   };
 
   return (
-    <div className="App">
-      <PersonaInput />
-    <div className="chat-container">
+    <div className="app-container">
 
-      {/* 채팅 헤더 */}
-      <ChatHeader />
-      
-      {/* 모델 선택 */}
-      <ModelSelector />
-      
-      {/* 페르소나 선택 */}
-      <div style={{ padding: '0 20px' }}>
-        <PersonaSelector 
-          onPersonaSelect={handlePersonaSelect}
-          selectedPersona={selectedPersona}
-        />
+      <PersonaInput />
+
+      <div className="subscription-panel">
+        <InsuranceSubscriptionForm sessionId={sessionId} />
       </div>
-      
-      {/* 메시지 목록 */}
-      <MessageList />
-      
-      {/* 입력 영역 */}
-      <ChatInput />
-      
-      {/* 빠른 메뉴 */}
-      {QuickMenuOpen && <QuickMenu />}
-      
-      {/* 모달 관리자 */}
-      <ModalManager />
-      
-      {/* 상담 종료 시 해소 결과 알림 */}
-      {resolutionResult && (
-        <div style={{ 
-          background: resolutionResult.resolved ? '#e3fcec' : '#ffeaea', 
-          color: '#333', 
-          padding: '8px', 
-          borderRadius: '8px', 
-          margin: '12px 0', 
-          textAlign: 'center' 
-        }}>
-          {resolutionResult.resolved 
-            ? '상담 종료 시점에 고객 감정이 해소된 것으로 분석되었습니다.' 
-            : '상담 종료 시점에도 고객 감정이 해소되지 않은 것으로 분석되었습니다.'
-          }
+      <div className="chat-panel">
+        {/* 채팅 헤더 */}
+        <ChatHeader />
+        
+        {/* 모델 선택 */}
+        <ModelSelector />
+        
+        {/* 페르소나 선택 */}
+        <div style={{ padding: '0 20px' }}>
+          <PersonaSelector 
+            onPersonaSelect={handlePersonaSelect}
+            selectedPersona={selectedPersona}
+          />
         </div>
-      )}
-    </div>
+        
+        {/* 메시지 목록 */}
+        <MessageList />
+        
+        {/* 입력 영역 */}
+        <ChatInput />
+        
+        {/* 빠른 메뉴 */}
+        {QuickMenuOpen && <QuickMenu />}
+        
+        {/* 모달 관리자 */}
+        <ModalManager />
+        
+        {/* 상담 종료 시 해소 결과 알림 */}
+        {resolutionResult && (
+          <div style={{ 
+            background: resolutionResult.resolved ? '#e3fcec' : '#ffeaea', 
+            color: '#333', 
+            padding: '8px', 
+            borderRadius: '8px', 
+            margin: '12px 0', 
+            textAlign: 'center' 
+          }}>
+            {resolutionResult.resolved 
+              ? '상담 종료 시점에 고객 감정이 해소된 것으로 분석되었습니다.' 
+              : '상담 종료 시점에도 고객 감정이 해소되지 않은 것으로 분석되었습니다.'
+            }
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
 
 // 최상위 앱 컴포넌트 (Provider 래핑)
 function App() {

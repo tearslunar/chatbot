@@ -18,10 +18,10 @@ class EmotionAnalyzer:
         self.emotion_history = []
         self.last_raw_response = None  # 원본 응답 저장
         self.max_history = 100  # 최근 100개만 저장
-        # 🚨 감정 격화 감지 및 상담 종료 권장 로직
-        self.high_intensity_threshold = 4  # 강도 4 이상을 고강도로 판단
+        # 🚨 감정 격화 감지 및 상담 종료 권장 로직 (완화된 설정)
+        self.high_intensity_threshold = 5  # 강도 5만을 고강도로 판단 (더 엄격하게)
         self.extreme_intensity_threshold = 5  # 강도 5는 극도로 격화된 상태
-        self.consecutive_high_intensity_limit = 3  # 연속 3회 이상이면 상담 종료 권장
+        self.consecutive_high_intensity_limit = 5  # 연속 5회 이상이면 상담 종료 권장 (더 관대하게)
         self.session_termination_triggered = False  # 세션 종료 트리거 상태
         self.termination_warning_given = False  # 종료 경고 발생 여부
         self.escalation_attempts = 0  # 에스컬레이션 시도 횟수
@@ -75,9 +75,10 @@ class EmotionAnalyzer:
                     emotion_data['emotion'] = '분노'
                     emotion_data['intensity'] = 5
                     emotion_data['confidence'] = 0.99
-                # threshold 조정: 부정/불만/분노/불안 등은 intensity 4 이상으로 보정
-                if emotion_data.get('emotion') in ['부정', '불만', '분노', '불안', '슬픔'] and emotion_data.get('intensity', 3) < 4:
+                # threshold 조정: 강한 부정적 감정만 보정 (더 보수적으로)
+                if emotion_data.get('emotion') in ['분노', '불만'] and emotion_data.get('intensity', 3) < 4:
                     emotion_data['intensity'] = 4
+                    # 일반적인 부정/불안/슬픔은 자동 보정하지 않음
                 emotion_data['timestamp'] = datetime.now().isoformat()
                 self.emotion_history.append(emotion_data)
                 if len(self.emotion_history) > self.max_history:
@@ -207,7 +208,7 @@ class EmotionAnalyzer:
         requires_termination = False
         intervention_type = "none"
         
-        if extreme_emotion_detected or consecutive_high_count >= 2:
+        if extreme_emotion_detected and consecutive_high_count >= 3:
             escalation_level = "critical"
             requires_intervention = True
             if consecutive_high_count >= self.consecutive_high_intensity_limit:
@@ -216,12 +217,12 @@ class EmotionAnalyzer:
             else:
                 intervention_type = "cooling_down"
                 
-        elif consecutive_high_count >= 2 or (negative_persistence > 0.7 and avg_intensity > 3.5):
+        elif consecutive_high_count >= 4 or (negative_persistence > 0.8 and avg_intensity > 4.2):
             escalation_level = "high"
             requires_intervention = True
             intervention_type = "de_escalation"
             
-        elif negative_persistence > 0.5 or avg_intensity > 3.8:
+        elif negative_persistence > 0.7 or avg_intensity > 4.0:
             escalation_level = "moderate"
             requires_intervention = True
             intervention_type = "empathy_boost"
@@ -242,37 +243,10 @@ class EmotionAnalyzer:
         }
 
     def should_terminate_session(self) -> Dict:
-        """세션 종료 필요성 및 개입 방식 판단"""
+        """세션 종료 필요성 및 개입 방식 판단 - 자동 종료 완전 비활성화"""
         escalation_analysis = self.check_emotional_escalation()
         
-        # 이미 종료 트리거된 경우
-        if self.session_termination_triggered:
-            return {
-                "should_terminate": True,
-                "termination_reason": "already_triggered",
-                "intervention_message": self.get_termination_message(),
-                "escalation_data": escalation_analysis
-            }
-        
-        # 새로운 종료 조건 체크
-        if escalation_analysis["requires_termination"]:
-            self.session_termination_triggered = True
-            return {
-                "should_terminate": True,
-                "termination_reason": escalation_analysis["intervention_type"],
-                "intervention_message": self.get_intervention_message(escalation_analysis),
-                "escalation_data": escalation_analysis
-            }
-        
-        # 개입 필요하지만 종료는 아닌 경우
-        elif escalation_analysis["requires_intervention"]:
-            return {
-                "should_terminate": False,
-                "intervention_needed": True,
-                "intervention_message": self.get_intervention_message(escalation_analysis),
-                "escalation_data": escalation_analysis
-            }
-        
+        # 🚨 자동 종료 완전 비활성화 - 항상 False 반환
         return {
             "should_terminate": False,
             "intervention_needed": False,
@@ -382,13 +356,13 @@ async def emotion_history_reset():
 @emotion_router.get("/emotion-intensity-status")
 async def emotion_intensity_status():
     """현재 감정 강도 지속 상태 확인"""
-    high_intensity_check = emotion_analyzer.check_consecutive_high_intensity()
+    escalation_analysis = emotion_analyzer.check_emotional_escalation()
     trend = emotion_analyzer.get_emotion_trend()
     
     return JSONResponse(content={
-        "consecutive_high_intensity": high_intensity_check,
+        "escalation_analysis": escalation_analysis,
         "emotion_trend": trend,
         "termination_triggered": emotion_analyzer.session_termination_triggered,
         "recent_emotions": emotion_analyzer.emotion_history[-5:] if emotion_analyzer.emotion_history else [],
-        "risk_level": "high" if high_intensity_check.get("consecutive_count", 0) >= 2 else "medium" if high_intensity_check.get("consecutive_count", 0) >= 1 else "low"
+        "risk_level": escalation_analysis.get("escalation_level", "none")
     }) 

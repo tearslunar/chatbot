@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 # 프롬프트 매니저 초기화 (성능 및 길이 최적화)
 _prompt_config = PromptConfig(
     mode=PromptMode.STANDARD,
-    max_length=6000,
+    max_length=3500, # 최대 길이 3500자로 변경
     max_history_turns=5,
     max_rag_results=3,
     rag_content_limit=300
@@ -174,6 +174,7 @@ def build_prompt_with_history(history, user_message, rag_results=None, emotion_d
 - 결론 먼저 제시: 핵심 답변부터 간결하게 시작
 - 구조화된 설명: 불릿(•), 번호 활용해 가독성 높이기
 - 긍정적 어조: 햇살(☀️), 미소(😊) 이모지로 친근함 표현
+- **정보 출처 명시**: RAG 검색 결과를 활용할 경우, 반드시 [출처: ...] 형식으로 출처를 명시하세요.
 
 """
     
@@ -186,54 +187,27 @@ def build_prompt_with_history(history, user_message, rag_results=None, emotion_d
 
 """
     
-    # 페르소나 정보 (핵심만 + 개인화 중요 필드)
+    # 🔥 페르소나 개인화 정보 (강력한 지시문)
     if persona_info:
-        # 기본 정보
-        persona_summary = f"고객: {persona_info.get('성별', '')} {persona_info.get('연령대', '')}, {persona_info.get('직업', '')}, {persona_info.get('가족구성', '')}"
-        
-        # 개인화에 중요한 추가 필드 (조건부)
-        important_fields = []
-        if persona_info.get('소득수준'):
-            important_fields.append(f"소득: {persona_info.get('소득수준')}")
-        if persona_info.get('보험관심사'):
-            important_fields.append(f"관심사: {persona_info.get('보험관심사')}")
-        if persona_info.get('의사결정스타일'):
-            important_fields.append(f"결정스타일: {persona_info.get('의사결정스타일')}")
-        
-        if important_fields:
-            persona_summary += f" | {', '.join(important_fields[:2])}"  # 최대 2개만
-        
-        prompt += persona_summary + "\n"
+        persona_data = persona_info.get('persona_data', persona_info)
+        customer_name = persona_data.get('페르소나명', '고객')
+        age_group = persona_data.get('연령대', '')
+        job = persona_data.get('직업', '')
+        family = persona_data.get('가족 구성', '')
+        core_needs = persona_data.get('핵심 니즈', '')
 
-        # ✅ 1. 고객 프로필 기반 상품 매칭 로직 (+400자)
-        age = persona_info.get('연령대', '')
-        job = persona_info.get('직업', '')
-        family = persona_info.get('가족구성', '')
-        income = persona_info.get('소득수준', '')
-        
-        # 생애주기별 맞춤 상품 추천
-        if '20대' in age:
-            prompt += "\n# 맞춤 상품 가이드\n• 20대: 실손의료보험, 운전자보험 우선 권장\n• 목표: 기본 보장 확보, 저렴한 보험료로 시작\n"
-        elif '30대' in age:
-            if '기혼' in family or '자녀' in family:
-                prompt += "\n# 맞춤 상품 가이드\n• 30대 가정: 종합보험, 자녀보험, 암보험 패키지 권장\n• 목표: 가족 보장 강화, 질병 위험 대비\n"
-            else:
-                prompt += "\n# 맞춤 상품 가이드\n• 30대 싱글: 암보험, 치아보험, 연금저축보험 권장\n• 목표: 건강 리스크 대비, 노후 준비 시작\n"
-        elif '40대' in age or '50대' in age:
-            prompt += "\n# 맞춤 상품 가이드\n• 40-50대: 3대질병보험, 간병보험, 연금보험 필수\n• 목표: 중대질병 대비, 은퇴 자금 확보\n"
-        
-        # ✅ 2. 생애주기별 맞춤 상담 스크립트 (+500자)
-        if '신혼' in family or ('20대' in age and '기혼' in family):
-            prompt += "\n# 생애주기 상담 가이드\n**신혼기 맞춤 상담:**\n• 우선순위: 실손의료보험 → 정기보험 → 저축성보험 순서로 가입\n• 주의점: 과도한 보험료 부담보다 기본 보장 우선\n• 팁: 부부 할인 혜택 활용, 향후 자녀 계획 고려한 설계\n"
-        elif '자녀' in family:
-            prompt += "\n# 생애주기 상담 가이드\n**자녀양육기 맞춤 상담:**\n• 우선순위: 부모 보장 강화 → 자녀보험 → 교육비 준비\n• 주의점: 자녀보험은 기본형으로, 부모 보장이 더 중요\n• 팁: 자녀 성장에 따른 보장 내용 업데이트 필요\n"
-        elif ('40대' in age or '50대' in age) and '기혼' in family:
-            prompt += "\n# 생애주기 상담 가이드\n**중년기 맞춤 상담:**\n• 우선순위: 3대질병보험 → 간병보험 → 연금보험\n• 주의점: 건강 상태 변화로 가입 조건 까다로워짐\n• 팁: 정기적인 보장 점검, 은퇴 후 보험료 부담 고려\n"
+        prompt += f"""# ⭐️ 고객 정보 (확정)
+당신은 다음 고객 정보를 **이미 파악하고 있습니다.**
+- **고객명**: {customer_name}님
+- **특징**: {age_group} {job}, {family}
+- **핵심 니즈**: {core_needs}
 
-        # ✅ 5. 간편 언어 모드 (+150자)
-        education = persona_info.get('교육수준', '')
-        if '고등학교' in education or '전문대' in education:
-            prompt += "\n# 언어 모드: 쉬운 설명 우선\n• 보험 용어는 일상 언어로 풀어서 설명\n• 예시 중심 설명, 복잡한 조건은 단계별 안내\n"
+# ⭐️ 핵심 임무
+1.  위 고객 정보를 바탕으로 **즉시 맞춤형 상품 추천**을 시작하세요.
+2.  **절대로 위에서 파악된 정보(연령, 직업 등)를 다시 질문하지 마세요.**
+3.  핵심 니즈를 최우선으로 고려하여 추천의 이유를 설명하세요.
+
+"""
     
     # 감정 정보 (간단히 + 응답 스타일 가이드)
     if emotion_data:
@@ -257,132 +231,8 @@ def build_prompt_with_history(history, user_message, rag_results=None, emotion_d
     
     prompt += "\n"
 
-    # ✅ 3. 실시간 보험료 계산 로직 (+400자)
-    prompt += """# 실시간 보험료 계산 가이드
-• 기본 산출: [나이 × 기본요율] + [직업군 할증/할인] + [특약 추가료]
-• 할인 적용: 무사고 할인 최대 30%, 다계약 할인 10%, 온라인 가입 할인 5%
-• 예시 계산: 30세 회사원, 실손의료보험 → 기본 월 25,000원 + 직업할인 5% = 월 23,750원
-• 정확한 보험료는 "견적 계산" 메뉴에서 개인정보 입력 후 확인 가능
-※ 위 금액은 참고용이며, 실제 보험료는 건강상태/가입조건에 따라 달라질 수 있음
-
-"""
-
-    # ✅ 6. 실시간 프로모션/혜택 정보 (+300자)
-    import datetime
-    current_month = datetime.datetime.now().month
-    prompt += f"""# 현재 진행 중인 프로모션 ({current_month}월)
-• 신규가입 혜택: 첫 3개월 보험료 30% 할인 (실손의료보험 한정)
-• 다계약 할인: 2개 이상 상품 가입 시 각각 10% 할인
-• 온라인 가입 혜택: 모바일 전용 5% 추가 할인 + 기프티콘 증정
-• 가족 소개 이벤트: 가족 가입 시 양쪽 모두 1개월 보험료 면제
-※ 프로모션 기간 및 조건은 상품별로 상이, 정확한 혜택은 가입 시 확인
-
-"""
-
-    # ✅ 4. 법령/규정 참조 시스템 (+450자)
-    prompt += """# 보험 관련 법령/규정 참조
-• 보험업법: 보험계약자 보호 기본 원칙, 청약철회권(15일), 계약 취소권
-• 약관 규정: 보험금 지급 기준, 면책사항, 보장 개시일
-• 소비자보호: 부당 권유 금지, 설명의무, 적합성 원칙
-• 개인정보보호: 수집/이용 동의, 제3자 제공 제한, 파기 의무
-• 분쟁 해결: 금융감독원 분쟁조정, 소비자보호센터, 집단분쟁조정
-• 세법 혜택: 보험료 소득공제 한도(연 100만원), 보험금 비과세 조건
-※ 구체적인 법령 적용은 개별 사안별로 검토 필요, 전문가 상담 권장
-
-"""
-
-    # ✅ 7. 과거 상담 이력 기반 컨텍스트 (+300자)
-    # 대화 이력에서 이전 상담 내용 분석
-    consultation_context = ""
-    if history:
-        keywords = []
-        for turn in history:
-            content = turn.get('content', '').lower()
-            if '가입' in content: keywords.append('가입상담')
-            if '보험금' in content or '청구' in content: keywords.append('보험금상담')
-            if '변경' in content: keywords.append('계약변경')
-            if '해지' in content: keywords.append('해지상담')
-            
-        if keywords:
-            unique_keywords = list(set(keywords))
-            consultation_context = f"# 이전 상담 연관성\n과거 상담 유형: {', '.join(unique_keywords)}\n→ 연속성 있는 상담 진행, 이전 내용 연결하여 답변\n\n"
-            prompt += consultation_context
-
-    # ✅ 8. 실시간 사고 처리 현황 (+350자)
-    prompt += """# 사고 처리 현황 시스템
-• 접수 단계: 사고 신고 → 담당자 배정 → 현장 조사 일정 안내
-• 조사 단계: 현장 조사 → 손해사정 → 의료기록 검토 → 과실 판정
-• 지급 단계: 보험금 산정 → 지급 승인 → 계좌 이체 (영업일 기준 3-5일)
-• 현황 조회: "보험금 처리 현황" 메뉴에서 실시간 확인 가능
-• 소요 기간: 일반 사고 7-14일, 복잡한 사고 30일 이내
-• 빠른 처리: 간단한 의료비는 모바일 청구 시 24시간 내 처리
-※ 사고 접수번호로 언제든 처리 현황 확인 가능, 지연 시 담당자 직접 연락
-
-"""
-
-    # ✅ 9. AI 챗봇 한계 인식 및 상담사 연결 가이드 (+300자)
-    prompt += """# AI 챗봇 한계 인식 및 상담사 연결 가이드
-
-**🤖 AI가 처리 가능한 간단한 상황:**
-• 단일 상품 기본 정보 문의 (자동차보험, 실손의료보험 등)
-• 일반적인 가입 절차 및 필요 서류 안내
-• 기본 보험료 계산 (표준 조건 기준)
-• 보험 용어 설명 및 FAQ 답변
-
-**👨‍💼 상담사 연결이 필요한 복잡한 상황 (구체적 기준):**
-
-📊 **금액/규모 기준:**
-• 연 보험료 500만원 이상 대형 가입 상담
-• 보험금 1억원 이상 고액 청구 건
-• 3개 이상 상품 동시 비교/설계 요청
-
-⚖️ **법적/분쟁 상황:**
-• 보험금 지급 거부 또는 감액 통지 받은 경우
-• 보험사와 의견 차이로 분쟁 중인 상황
-• 법적 자문이나 소송 관련 문의
-
-🔄 **계약 변경 상황:**
-• 기존 계약 해지 후 타사 이전 검토
-• 보장 내용 대폭 변경 (보험료 100만원 이상 증감)
-• 수익자 변경, 계약자 변경 등 중요 사항 변경
-
-💰 **전문 설계 필요:**
-• 개인별 위험 분석 후 맞춤 포트폴리오 구성
-• 상속, 증여 세금 고려한 보험 설계
-• 사업자용 특수 보험 상담
-
-**📞 즉시 연결 방법:** "상담사 연결" 버튼 클릭 또는 "전문가와 상담하고 싶어요" 말씀
-
-"""
-
-    # ✅ 10. 보험 용어 사전 기능 (+500자)
-    prompt += """# 보험 용어 사전 (자주 문의되는 용어)
-**실손의료보험:** 실제 발생한 의료비를 보상해주는 보험 (본인부담금 제외)
-**면책기간:** 가입 후 보험금을 받을 수 없는 기간 (암보험 90일 등)
-**특약:** 주계약에 추가로 붙이는 선택 보장 (상해, 질병, 암 등)
-**해지환급금:** 보험 해지 시 돌려받는 돈 (납입보험료보다 적을 수 있음)
-**보험료 납입면제:** 특정 상황 시 보험료를 내지 않아도 보장 유지
-**자기부담금:** 보험금 지급 시 고객이 직접 부담하는 금액
-**보장개시일:** 보험 보장이 실제로 시작되는 날짜
-**보험가액:** 보험으로 보장받을 수 있는 최대 금액
-※ 용어가 어려우시면 언제든 쉬운 말로 다시 설명드려요!
-
-"""
-
-    # ✅ 11. 고객 만족도 기반 응답 최적화 (+350자)
-    prompt += """# 고객 만족도 향상 응답 전략
-**만족도 향상 요소:**
-• 첫 응답에서 핵심 해답 제시 (결론 우선)
-• 복잡한 내용은 단계별로 나누어 설명
-• 고객 상황에 맞는 구체적 예시 활용
-• 추가 궁금증 해결을 위한 후속 질문 유도
-**피드백 수집:** "이 답변이 도움이 되셨나요?" / "더 궁금한 점이 있으시면 말씀해주세요"
-**개선 포인트:** 
-• 답변이 부족했다면 → 더 자세히 설명하고 관련 정보 추가 제공
-• 이해하기 어려웠다면 → 더 쉬운 말로 다시 설명
-• 원하는 답변이 아니었다면 → 구체적으로 어떤 정보가 필요한지 재확인
-
-"""
+    # 간단한 보험료 가이드만 포함
+    prompt += "\n💰 보험료 문의 시: 나이, 직업, 건강상태에 따라 달라집니다\n\n"
     
     # 대화 이력 (관련성 기반 지능형 선별)
     relevant_history = select_relevant_history(history or [], user_message)
@@ -501,22 +351,11 @@ def get_potensdot_answer_with_fallback(user_message: str, model_name: str = None
     }
 
     
-    # 1차 시도: 경량화된 프롬프트
-    prompt = build_lightweight_prompt_with_history(history, user_message, rag_results, emotion_data, persona_info, search_metadata)
+    # 프롬프트 생성
+    prompt = build_prompt_with_history(history, user_message, rag_results, emotion_data, persona_info, search_metadata)
     prompt_length = len(prompt)
     
-    print(f"[최적화 프롬프트] 길이: {prompt_length}자, 압축률: {(prompt_length/len(build_prompt_with_history(history, user_message, rag_results, emotion_data, persona_info, search_metadata))*100):.1f}%")
-    
-    # 프롬프트가 여전히 너무 길면 추가 압축
-    if prompt_length > 2000:
-        # 극도로 간소화된 프롬프트
-        simple_prompt = f"""햇살봇: 현대해상 AI 상담챗봇. 감정 공감, 결론 우선, 친근한 어조.
-
-사용자 질문: {user_message}
-답변:"""
-        prompt = simple_prompt
-        prompt_length = len(prompt)
-        print(f"[극한 압축] 길이: {prompt_length}자")
+    print(f"[최적화 프롬프트] 길이: {prompt_length}자")
     
     data = {"prompt": prompt}
     

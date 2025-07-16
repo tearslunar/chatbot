@@ -25,9 +25,11 @@ except ImportError:
 from .config.settings import settings
 from .middleware.security import setup_middleware
 from .middleware.exception_handler import setup_exception_handlers
-from .routers import chat, persona, insurance
+from .routers import chat, persona, insurance, auto_insurance
 from .sentiment.advanced import emotion_router
 from .utils.chat import llm_router
+
+from .database import engine, Base
 
 # 로깅 설정
 logging.basicConfig(
@@ -41,14 +43,6 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# GPU 정보 로깅
-try:
-    from .utils.gpu_manager import get_gpu_info
-    gpu_info = get_gpu_info()
-    logger.info(f"🚀 GPU 설정: {gpu_info}")
-except ImportError:
-    logger.info("🚀 GPU 매니저를 찾을 수 없습니다. CPU 모드로 실행됩니다.")
-
 # FastAPI 앱 생성
 app = FastAPI(
     title=settings.app_name,
@@ -58,6 +52,17 @@ app = FastAPI(
     docs_url="/docs" if settings.is_development else None,
     redoc_url="/redoc" if settings.is_development else None
 )
+
+# 데이터베이스 테이블 생성
+@app.on_event("startup")
+async def on_startup():
+    logger.info("데이터베이스 테이블을 생성합니다...")
+    try:
+        from .database import engine, Base
+        Base.metadata.create_all(bind=engine)
+        logger.info("데이터베이스 테이블 생성이 완료되었습니다.")
+    except Exception as e:
+        logger.error(f"데이터베이스 테이블 생성 실패: {e}")
 
 # 미들웨어 설정
 setup_middleware(app)
@@ -69,6 +74,7 @@ setup_exception_handlers(app)
 app.include_router(chat.router)
 app.include_router(persona.router)
 app.include_router(insurance.router)
+app.include_router(auto_insurance.router)
 app.include_router(emotion_router)
 app.include_router(llm_router)
 

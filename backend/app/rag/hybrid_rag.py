@@ -99,8 +99,8 @@ def format_results_for_prompt(results: List[Dict]) -> str:
             # FAQ 결과 포맷팅
             faq_data = result.get('faq', {})
             formatted_parts.append(
-                f"[FAQ] Q: {faq_data.get('question', '')}\n"
-                f"A: {faq_data.get('content', '')}"
+                f"[출처: FAQ] Q: {faq_data.get('question', '')}\n"
+                f"내용: {faq_data.get('content', '')}"
             )
         elif source_type == 'terms':
             # 약관 결과 포맷팅
@@ -110,8 +110,8 @@ def format_results_for_prompt(results: List[Dict]) -> str:
             content = terms_data.get('content', '')[:500]  # 내용 제한
             
             formatted_parts.append(
-                f"[약관-{category}] {filename}\n"
-                f"{content}..."
+                f"[출처: 약관-{category}] 파일: {filename}\n"
+                f"내용: {content}..."
             )
     
     return "\n\n".join(formatted_parts)
