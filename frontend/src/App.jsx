@@ -114,7 +114,7 @@ function ChatApp() {
   return (
     <div className="app-container">
 
-      <PersonaInput />
+      {/* <PersonaInput />  페르소나 기입창  */}
 
       <div className="subscription-panel">
         <InsuranceSubscriptionForm sessionId={sessionId} />
