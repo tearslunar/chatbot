@@ -12,6 +12,7 @@ import MessageList from './components/MessageList';
 import ChatInput from './components/ChatInput';
 import ModalManager from './components/ModalManager';
 import QuickMenu from './components/QuickMenu';
+import PersonaInput from './components/PersonaInput';
 
 // Hooks
 import { useInactivityTimer } from './hooks/useInactivityTimer';
@@ -110,7 +111,10 @@ function ChatApp() {
   };
 
   return (
+    <div className="App">
+      <PersonaInput />
     <div className="chat-container">
+
       {/* 채팅 헤더 */}
       <ChatHeader />
       
@@ -153,6 +157,7 @@ function ChatApp() {
           }
         </div>
       )}
+    </div>
     </div>
   );
 }

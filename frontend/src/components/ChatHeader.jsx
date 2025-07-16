@@ -6,6 +6,10 @@ const ChatHeader = () => {
   const { state, actions } = useChatContext();
   const { currentEmotion, isSessionEnded } = state;
 
+  const handleDevMode = () => {
+    actions.setDevMode(!state.DevMode);
+  }
+
   const handleEndChat = () => {
     actions.setModalOpen(true);
   };
@@ -33,6 +37,7 @@ const ChatHeader = () => {
         Hi-Care AI 챗봇
         {currentEmotion && <EmotionIndicator emotion={currentEmotion} />}
       </div>
+      <button className='DevMode' onClick={handleDevMode}>Dev</button>
       <div style={{ display: 'flex', gap: '8px' }}>
         {!isSessionEnded && (
           <button className="end-button" onClick={handleEndChat}>

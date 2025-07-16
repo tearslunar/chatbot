@@ -10,6 +10,21 @@ body {
   height: 100vh;
 }
 
+.DevMode {
+  display: block;
+  background: #fff; /*#e87c1a;*/
+  color: #e87c1a;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 20px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  transition: background 0.2s;
+  margin-right: 5px;
+}
+
 /* 모달 스타일 */
 .modal-background {
   position: fixed;

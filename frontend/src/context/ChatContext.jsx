@@ -13,6 +13,7 @@ const initialState = {
   sessionId: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
   
   // UI 상태
+  DevMode: false,
   isModalOpen: false,
   isFeedbackModalOpen: false,
   QuickMenuOpen: false,
@@ -137,6 +138,8 @@ function chatReducer(state, action) {
         hoveredRating: 0,
         isFeedbackModalOpen: false
       };
+      case 'SET_DEV_MODE':
+        return { ...state, DevMode: action.payload };
     
     default:
       return state;
@@ -159,6 +162,7 @@ export function ChatProvider({ children }) {
   });
 
   const actions = {
+    setDevMode: useCallback((devMode) => dispatch({ type: 'SET_DEV_MODE', payload: devMode }), []),
     setMessages: useCallback((messages) => dispatch({ type: 'SET_MESSAGES', payload: messages }), []),
     addMessage: useCallback((message) => dispatch({ type: 'ADD_MESSAGE', payload: message }), []),
     setInput: useCallback((input) => dispatch({ type: 'SET_INPUT', payload: input }), []),

@@ -1,0 +1,78 @@
+.PersonaInput {
+  position: fixed;
+  top: 78px;
+  left: 30px;
+
+  width: 300px;
+  height: 590px;
+
+  background-color: #f0f0f0;
+  border-radius: 30px; /* 둥글게: 숫자 조절 가능 */
+  padding: 20px;
+
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+  display: flex;
+  align-items: center;     /* 세로 중앙 */
+  flex-direction: column;  /* 세로 방향으로 쌓기 (선택) */
+
+  border: none;
+  box-shadow: 0 0 0 2px rgba(232, 124, 26, 0.3);
+
+}
+.PersonaData {
+  list-style-position: inside;
+  padding: 0;
+  margin: 0;
+}
+
+.PersonaData li {
+    list-style-type: none;
+  margin-bottom: 12px;
+}
+.PersonaData input {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.PersonaData label {
+  display: grid;
+  grid-template-columns: 110px 1fr; /* 첫 번째 칸 고정, 두 번째 칸 유동 */
+  align-items: center;
+}
+select[multiple] option:checked {
+  background-color: #e87c1a;
+  color: white;
+  font-weight: bold;
+}
+select[multiple] option:hover {
+  background-color: #fbd6ae;
+}
+.aaa{
+    position: fixed;
+    left: 180px;
+}
+.reset_btn{
+    background-color: #ccc;
+    color: black;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-left: 10px; /* 버튼 간격 */
+}
+.submit_btn {
+  background-color: #e87c1a;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.form_btn {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px; /* 버튼과 입력창 사이 간격 */
+}
