@@ -7,60 +7,16 @@ export function useInactivityTimer() {
   const timerRef = useRef(null);
   const countdownRef = useRef(null);
 
-  // 비활성 타이머 종료 처리
+  // 🚨 자동 종료 완전 비활성화 - 비활성 타이머 더 이상 작동하지 않음
   const handleInactivityTimeout = () => {
-    console.log('[비활성 타이머] 3분 경과로 상담을 자동 종료합니다.');
-    actions.setSessionEnded(true);
-    actions.setCurrentEmotion(null);
-    actions.addMessage({ 
-      role: 'bot', 
-      content: '⏰ **3분간 대화가 없어 상담이 자동으로 종료되었습니다.** 서비스 이용 후기를 남겨주시면 더 나은 서비스 제공에 도움이 됩니다.' 
-    });
-    actions.setInactivityWarning(false);
-    actions.setRemainingTime(0);
-    
-    // 자동 종료 후 바로 평점 입력창 표시
-    setTimeout(() => {
-      actions.setFeedbackModalOpen(true);
-    }, 1000);
+    // 아무것도 하지 않음 - 자동 종료 비활성화
+    console.log('[비활성 타이머] 자동 종료 기능이 비활성화되었습니다.');
   };
 
-  // 메인 비활성 타이머 관리
+  // 메인 비활성 타이머 관리 - 완전 비활성화
   useEffect(() => {
-    // 상담이 종료된 상태에서는 타이머 작동하지 않음
-    if (isSessionEnded) {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-      actions.setInactivityWarning(false);
-      return;
-    }
-
-    // 기존 타이머 정리
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-
-    // 새로운 타이머 시작 (2분 30초 후 경고)
-    timerRef.current = setTimeout(() => {
-      actions.setInactivityWarning(true);
-      actions.setRemainingTime(30); // 30초 경고
-      
-      // 추가 30초 후 자동 종료
-      const finalTimer = setTimeout(() => {
-        handleInactivityTimeout();
-      }, 30000);
-      
-      timerRef.current = finalTimer;
-    }, 150000); // 2분 30초
-
-    // 컴포넌트 언마운트 시 타이머 정리
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
+    // 🚨 자동 종료 완전 비활성화 - 타이머 설정하지 않음
+    return;
   }, [lastActivityTime, isSessionEnded]);
 
   // 경고 표시 중 남은 시간 카운트다운

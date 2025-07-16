@@ -38,40 +38,11 @@ function SessionManager({
     setRemainingTime(inactivityTimeout);
   }, [inactivityTimeout]);
 
-  // 비활성 타이머 관리
+  // 🚨 비활성 타이머 완전 비활성화 - 자동 종료 제거
   useEffect(() => {
-    if (isSessionEnded) {
-      return;
-    }
-
-    // 활동 이벤트 리스너 등록
-    const handleActivity = () => resetInactivityTimer();
-    
-    activityEvents.forEach(event => {
-      document.addEventListener(event, handleActivity, true);
-    });
-
-    // 타이머 설정
-    const warningTime = inactivityTimeout - 30; // 30초 전 경고
-    
-    const warningTimer = setTimeout(() => {
-      setShowInactivityWarning(true);
-    }, warningTime * 1000);
-
-    const endTimer = setTimeout(() => {
-      if (onSessionEnd) {
-        onSessionEnd();
-      }
-    }, inactivityTimeout * 1000);
-
-    // 정리 함수
-    return () => {
-      activityEvents.forEach(event => {
-        document.removeEventListener(event, handleActivity, true);
-      });
-      clearTimeout(warningTimer);
-      clearTimeout(endTimer);
-    };
+    // 자동 종료 기능 완전 비활성화 - 아무것도 하지 않음
+    console.log('[SessionManager] 자동 종료 기능이 비활성화되었습니다.');
+    return;
   }, [lastActivity, isSessionEnded, inactivityTimeout, onSessionEnd, activityEvents, resetInactivityTimer]);
 
   // 경고 표시 중 카운트다운
